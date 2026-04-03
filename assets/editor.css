@@ -417,6 +417,14 @@
   gap: 4px;
 }
 
+.ai-editor-copy-btn.ai-editor-copy-failed {
+  background: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
 /* ── Shortcuts hint ─────────────────────────────────────── */
 .ai-editor-shortcuts {
   display: flex;

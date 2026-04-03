@@ -701,23 +701,39 @@
 
   // ── Copy with button feedback ──────────────────────────────
   let copyTimer = null;
-  function showCopyFeedback(msg) {
+  function showCopyFeedback(msg, state = "success") {
     const btn = chatPanel.querySelector(`.${NS}-copy-btn`);
+    if (!btn) return;
     if (copyTimer) clearTimeout(copyTimer);
-    btn.classList.add(`${NS}-copy-done`);
-    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${msg}`;
+    btn.classList.remove(`${NS}-copy-done`, `${NS}-copy-failed`);
+
+    if (state === "error") {
+      btn.classList.add(`${NS}-copy-failed`);
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg> ${msg}`;
+    } else {
+      btn.classList.add(`${NS}-copy-done`);
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${msg}`;
+    }
+
     copyTimer = setTimeout(() => {
-      btn.classList.remove(`${NS}-copy-done`);
+      btn.classList.remove(`${NS}-copy-done`, `${NS}-copy-failed`);
       btn.textContent = "Copy Prompt";
       copyTimer = null;
     }, 2000);
   }
 
-  function copyPrompt() {
+  async function copyPrompt() {
     const text = buildPromptText();
     if (!text) return;
-    writeToClipboard(text);
-    showCopyFeedback("Copied");
+
+    const result = await writeToClipboard(text);
+    if (result === "clipboard") {
+      showCopyFeedback("Copied");
+    } else if (result === "fallback") {
+      showCopyFeedback("Copied via fallback");
+    } else {
+      showCopyFeedback("Copy failed", "error");
+    }
   }
 
   // ── Prompt building ────────────────────────────────────────
@@ -742,12 +758,15 @@
     return lines.join("\n");
   }
 
-  function writeToClipboard(text) {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-    } else {
-      fallbackCopy(text);
+  async function writeToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return "clipboard";
+      } catch (_) {}
     }
+
+    return fallbackCopy(text) ? "fallback" : "failed";
   }
 
   function fallbackCopy(text) {
@@ -756,8 +775,10 @@
     ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
     document.body.appendChild(ta);
     ta.focus(); ta.select();
-    try { document.execCommand("copy"); } catch (_) {}
+    let copied = false;
+    try { copied = document.execCommand("copy"); } catch (_) {}
     ta.remove();
+    return copied;
   }
 
   // ── React debug info (dev mode only) ──────────────────────
