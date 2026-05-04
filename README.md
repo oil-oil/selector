@@ -2,9 +2,17 @@
 
 Point at any element. Tell your AI what to change.
 
-A bookmarklet that lets you visually select elements on any web page, add instructions, and copy a structured prompt — paste it into Claude Code, Codex, Cursor, or any AI coding assistant.
+A browser extension (and bookmarklet) that lets you visually select elements on any web page, add instructions, and copy a structured prompt — paste it into Claude Code, Codex, Cursor, or any AI coding assistant.
 
 ## Install
+
+### Extension (recommended — Chrome, Edge, Arc)
+
+1. Visit the **[install page](https://oil-oil.github.io/selector/)**
+2. Install from the Chrome Web Store
+3. Done — a launcher button appears on every page
+
+### Bookmarklet (other browsers)
 
 1. Visit the **[install page](https://oil-oil.github.io/selector/)**
 2. Drag the **Selector** button to your bookmarks bar (one-time)
@@ -12,7 +20,9 @@ A bookmarklet that lets you visually select elements on any web page, add instru
 
 ## Usage
 
-Open any web page, click the **Selector** bookmark.
+**Extension:** Click the **●** launcher button in the bottom-left corner of any page to open Selector. Click it again (or press ✕) to close.
+
+**Bookmarklet:** Open any web page, click the **Selector** bookmark.
 
 | Action | What it does |
 |---|---|
@@ -51,7 +61,9 @@ Page: /dashboard
 
 ## How it works
 
-The bookmarklet injects `editor.css` + `editor.js` into the current page. Everything runs client-side — no data is sent anywhere. The code is bundled into the bookmark at install time, so it works offline after that.
+The extension declares `assets/editor.css` + `assets/editor.js` as content scripts injected into all pages. A small launcher button (bottom-left) appears on every page; clicking it activates the full picker UI. Everything runs client-side — no data is sent anywhere.
+
+The bookmarklet works the same way — the install page fetches and bundles the assets into a `javascript:` URI at load time.
 
 ## Development
 
@@ -59,7 +71,8 @@ The bookmarklet injects `editor.css` + `editor.js` into the current page. Everyt
 git clone https://github.com/oil-oil/selector.git
 cd selector
 # Edit assets/editor.js and assets/editor.css
-# Push to main — GitHub Pages auto-deploys
+# Load unpacked extension: chrome://extensions → Developer Mode → Load unpacked → repo root
+# Push to main — GitHub Pages auto-deploys the install page
 ```
 
 ## License
