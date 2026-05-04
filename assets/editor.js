@@ -27,6 +27,7 @@
   let active = false;
 
   function createLauncher() {
+    if (document.querySelector(`.${NS}-launcher`)) return;
     launcherEl = document.createElement("button");
     launcherEl.className = `${NS}-root ${NS}-launcher`;
     launcherEl.title = "Selector";
