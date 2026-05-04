@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Selector",
+  "version": "1.0.0",
+  "description": "Point at any element. Tell your AI what to change.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Selector",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["assets/editor.js"],
+    "css": ["assets/editor.css"],
+    "run_at": "document_idle"
+  }]
+}
