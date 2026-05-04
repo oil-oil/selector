@@ -5,8 +5,6 @@
 (function () {
   "use strict";
 
-  if (document.querySelector(".ai-editor-root")) return;
-
   const NS = "ai-editor";
   const AI_ID = "data-ai-id";
 
@@ -25,14 +23,35 @@
   let wasJustDragging = false;
   let activePopover = null;
   const selectionHistory = [];
+  let launcherEl = null;
+  let active = false;
+
+  function createLauncher() {
+    launcherEl = document.createElement("button");
+    launcherEl.className = `${NS}-root ${NS}-launcher`;
+    launcherEl.title = "Selector";
+    launcherEl.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="2" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>';
+    launcherEl.addEventListener("click", toggleActive);
+    document.body.appendChild(launcherEl);
+  }
+
+  function toggleActive() {
+    if (active) {
+      destroy();
+    } else {
+      activate();
+    }
+  }
 
   function on(target, type, fn, capture) {
     target.addEventListener(type, fn, capture);
     listeners.push({ target, type, fn, capture });
   }
 
-  // ── Init ───────────────────────────────────────────────────
-  function init() {
+  // ── Activate ───────────────────────────────────────────────
+  function activate() {
+    active = true;
+    launcherEl.classList.add(`${NS}-launcher-active`);
     assignAiIds(document.body);
     createHoverBox();
     createChatPanel();
@@ -57,13 +76,22 @@
 
   // ── Destroy ────────────────────────────────────────────────
   function destroy() {
+    active = false;
     for (const { target, type, fn, capture } of listeners) {
       target.removeEventListener(type, fn, capture);
     }
+    listeners.length = 0;
     destroyAllOverlays();
+    selectedElements = [];
+    annotations.clear();
+    selectionHistory.length = 0;
     removeAnnotationPopover();
-    if (hoverBox) hoverBox.remove();
-    if (chatPanel) chatPanel.remove();
+    cancelDrag();
+    paused = false;
+    wasJustDragging = false;
+    if (hoverBox) { hoverBox.remove(); hoverBox = null; }
+    if (chatPanel) { chatPanel.remove(); chatPanel = null; }
+    if (launcherEl) launcherEl.classList.remove(`${NS}-launcher-active`);
   }
 
   // ── AI-ID ──────────────────────────────────────────────────
@@ -867,6 +895,6 @@
   }
 
   // ── Boot ───────────────────────────────────────────────────
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", createLauncher);
+  else createLauncher();
 })();
