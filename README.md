@@ -2,6 +2,8 @@
 
 Point at any element. Tell your AI what to change.
 
+> Forked from [oil-oil/selector](https://github.com/oil-oil/selector). Added Chrome/Edge/Arc browser extension support.
+
 A browser extension (and bookmarklet) that lets you visually select elements on any web page, add instructions, and copy a structured prompt — paste it into Claude Code, Codex, Cursor, or any AI coding assistant.
 
 ## Install
