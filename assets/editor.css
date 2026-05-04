@@ -445,3 +445,43 @@
   color: #666;
   line-height: 1.6;
 }
+
+/* ── Launcher button ─────────────────────────────────────── */
+.ai-editor-launcher {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 2147483644;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: background 150ms, transform 100ms, box-shadow 150ms;
+}
+
+.ai-editor-launcher:hover {
+  background: #333;
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ai-editor-launcher:active {
+  transform: scale(0.96);
+}
+
+.ai-editor-launcher.ai-editor-launcher-active {
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.ai-editor-launcher.ai-editor-launcher-active:hover {
+  background: #1d4ed8;
+}
