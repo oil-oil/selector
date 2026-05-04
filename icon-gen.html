@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+const sizes = [16, 48, 128];
+sizes.forEach(size => {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = size / 2, cy = size / 2, r = size * 0.42;
+
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1, size * 0.07);
+  ctx.lineCap = 'round';
+  const gap = r * 0.28, len = r * 0.35;
+  [[cx - r + 2, cy, cx - gap, cy], [cx + gap, cy, cx + r - 2, cy],
+   [cx, cy - r + 2, cx, cy - gap], [cx, cy + gap, cx, cy + r - 2]]
+    .forEach(([x1, y1, x2, y2]) => {
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    });
+
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+
+  const a = document.createElement('a');
+  a.download = `icon${size}.png`;
+  a.href = canvas.toDataURL('image/png');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+});
+document.body.textContent = 'Done — move icon16.png, icon48.png, icon128.png to icons/';
+</script>
+</body>
+</html>
