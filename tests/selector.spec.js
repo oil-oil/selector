@@ -13,14 +13,15 @@ test.beforeEach(async ({ page }) => {
   // Install clipboard mock after setContent so it is available when editor.js runs.
   await page.evaluate(() => {
     window.__clipboardText = '';
-    Object.defineProperty(navigator, 'clipboard', {
-      value: {
-        writeText: (text) => { window.__clipboardText = text; return Promise.resolve(); },
-        readText:  ()     => Promise.resolve(window.__clipboardText),
-      },
-      writable: true,
-      configurable: true,
-    });
+    const mockClipboard = {
+      writeText: (text) => { window.__clipboardText = text; return Promise.resolve(); },
+      readText:  ()     => Promise.resolve(window.__clipboardText),
+    };
+    try {
+      Object.defineProperty(navigator, 'clipboard', { value: mockClipboard, writable: true, configurable: true });
+    } catch (_) {
+      navigator.clipboard = mockClipboard;
+    }
   });
   await injectSelector(page);
 });
@@ -130,7 +131,7 @@ test.describe('Copy Prompt', () => {
     await page.locator('#intro-para').click();
     await page.locator('body').focus();
     await page.keyboard.press('Meta+c');
-
+    await page.waitForFunction(() => window.__clipboardText !== '');
     const text = await page.evaluate(() => window.__clipboardText);
     expect(text).toMatch(/^Page:/m);
   });
