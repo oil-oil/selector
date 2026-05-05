@@ -1,30 +1,21 @@
-# Selector
+# AI Element Picker for Claude & Codex
 
-Point at any element. Tell your AI what to change.
+Visually select any DOM element and copy an AI prompt — for Claude Code, Codex, Cursor, Copilot, or any AI coding assistant.
 
 > Forked from [oil-oil/selector](https://github.com/oil-oil/selector). Added Chrome/Edge/Arc browser extension support.
 
-A browser extension (and bookmarklet) that lets you visually select elements on any web page, add instructions, and copy a structured prompt — paste it into Claude Code, Codex, Cursor, or any AI coding assistant.
+A browser extension that lets you point and click any element on any webpage, add instructions, and copy a structured AI prompt. Perfect for vibe coding workflows with Claude Code, Codex, Cursor, or GitHub Copilot.
 
 ## Install
 
-### Extension (recommended — Chrome, Edge, Arc)
+1. Install from the Chrome Web Store
+2. Done — a launcher button appears on every page
 
-1. Visit the **[install page](https://oil-oil.github.io/selector/)**
-2. Install from the Chrome Web Store
-3. Done — a launcher button appears on every page
-
-### Bookmarklet (other browsers)
-
-1. Visit the **[install page](https://oil-oil.github.io/selector/)**
-2. Drag the **Selector** button to your bookmarks bar (one-time)
-3. Done
+Works with Chrome, Edge, and Arc.
 
 ## Usage
 
-**Extension:** Click the **●** launcher button in the bottom-left corner of any page to open Selector. Click it again (or press ✕) to close.
-
-**Bookmarklet:** Open any web page, click the **Selector** bookmark.
+Click the **●** launcher button in the bottom-left corner of any page to open Selector. Click it again (or press ✕) to close.
 
 | Action | What it does |
 |---|---|
@@ -64,8 +55,6 @@ Page: /dashboard
 ## How it works
 
 The extension declares `assets/editor.css` + `assets/editor.js` as content scripts injected into all pages. A small launcher button (bottom-left) appears on every page; clicking it activates the full picker UI. Everything runs client-side — no data is sent anywhere.
-
-The bookmarklet works the same way — the install page fetches and bundles the assets into a `javascript:` URI at load time.
 
 ## Development
 

@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Selector",
+  "name": "AI Element Picker for Claude & Codex",
   "version": "1.0.0",
-  "description": "Point at any element. Tell your AI what to change.",
+  "description": "Visually select any DOM element and copy an AI prompt for Claude Code, Codex, Cursor, or Copilot. Vibe coding made easy.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Selector",
+    "default_title": "AI Element Picker",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png"
