@@ -14,7 +14,6 @@
   let aiIdCounter = 0;
   let rafPending = false;
   let lastMoveTarget = null;
-  let minimized = false;
   let paused = false;
   const selOverlays = new Map();
   const annotations = new Map();
@@ -168,7 +167,7 @@
 
   // ── Mouse handling ─────────────────────────────────────────
   function handleMouseMove(e) {
-    if (minimized || paused) return;
+    if (paused) return;
 
     if (dragState) {
       const dx = e.clientX - dragState.startX;
@@ -202,7 +201,7 @@
 
   function handleMouseDown(e) {
     if (isEditorElement(e.target)) return;
-    if (minimized || paused) return;
+    if (paused) return;
     if (e.button !== 0) return;
     if (e.shiftKey) e.preventDefault();
 
@@ -252,7 +251,7 @@
 
   function handleClick(e) {
     if (isEditorElement(e.target)) return;
-    if (minimized || paused) return;
+    if (paused) return;
     if (wasJustDragging) return;
 
     e.preventDefault();
@@ -594,11 +593,6 @@
           <span class="${NS}-status-label">Selecting</span>
         </span>
         <div class="${NS}-panel-actions">
-          <button class="${NS}-panel-btn" data-action="minimize" title="Minimize">
-            <svg width="10" height="2" viewBox="0 0 10 2" fill="none">
-              <line x1="0" y1="1" x2="10" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </button>
           <button class="${NS}-panel-btn" data-action="close" title="Close">
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -624,32 +618,9 @@
     document.body.appendChild(chatPanel);
 
     chatPanel.querySelector(`.${NS}-copy-btn`).onclick = () => copyPrompt();
-
-    chatPanel.querySelector('[data-action="minimize"]').onclick = toggleMinimize;
     chatPanel.querySelector('[data-action="close"]').onclick = destroy;
 
     makeDraggable(chatPanel, chatPanel.querySelector(`.${NS}-drag-handle`));
-  }
-
-  const ICON_MINIMIZE = `<svg width="10" height="2" viewBox="0 0 10 2" fill="none"><line x1="0" y1="1" x2="10" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
-  const ICON_EXPAND   = `<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 7L5 3L9 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
-  function toggleMinimize() {
-    minimized = !minimized;
-    const body = chatPanel.querySelector(`.${NS}-panel-body`);
-    const btn  = chatPanel.querySelector('[data-action="minimize"]');
-    if (minimized) {
-      body.style.display = "none";
-      chatPanel.classList.add(`${NS}-minimized`);
-      showHover(null);
-      btn.innerHTML = ICON_EXPAND;
-      btn.title = "Restore";
-    } else {
-      body.style.display = "";
-      chatPanel.classList.remove(`${NS}-minimized`);
-      btn.innerHTML = ICON_MINIMIZE;
-      btn.title = "Minimize";
-    }
   }
 
   function makeDraggable(panel, handle) {

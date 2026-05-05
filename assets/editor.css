@@ -281,16 +281,6 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-/* ── Minimized state ─────────────────────────────────────── */
-.ai-editor-minimized {
-  width: auto !important;
-  min-width: 130px;
-}
-
-.ai-editor-minimized .ai-editor-drag-handle {
-  border-bottom: none;
-}
-
 /* ── Tags ────────────────────────────────────────────────── */
 .ai-editor-chat-tags {
   display: flex;
@@ -478,10 +468,10 @@
 }
 
 .ai-editor-launcher.ai-editor-launcher-active {
-  background: #2563eb;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  background: #16a34a;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.4);
 }
 
 .ai-editor-launcher.ai-editor-launcher-active:hover {
-  background: #1d4ed8;
+  background: #15803d;
 }
