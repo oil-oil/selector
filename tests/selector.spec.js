@@ -63,3 +63,28 @@ test.describe('Selection', () => {
     await expect(page.locator('.ai-editor-sel-box')).toHaveCount(2);
   });
 });
+
+// ── Clear / deselect ──────────────────────────────────────
+test.describe('Clear', () => {
+  test('Escape clears all selected elements', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await page.locator('#action-btn').click({ modifiers: ['Shift'] });
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.locator('.ai-editor-tag')).toHaveCount(0);
+    await expect(page.locator('.ai-editor-sel-box')).toHaveCount(0);
+  });
+
+  test('tag X button removes only that element', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await page.locator('#action-btn').click({ modifiers: ['Shift'] });
+
+    await page.locator('.ai-editor-tag-x').first().click({ force: true });
+
+    await expect(page.locator('.ai-editor-tag')).toHaveCount(1);
+    await expect(page.locator('.ai-editor-sel-box')).toHaveCount(1);
+  });
+});
