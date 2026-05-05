@@ -1,7 +1,13 @@
 {
-  "name": "selector-extension",
-  "version": "1.0.0",
+  "name": "selector-tests",
+  "private": true,
   "scripts": {
-    "build": "zip -r selector-extension.zip manifest.json assets/ icons/ --exclude '*.DS_Store'"
+    "build": "zip -r selector-extension.zip manifest.json assets/ icons/ --exclude '*.DS_Store'",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
   }
 }

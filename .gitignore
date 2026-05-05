@@ -1,0 +1,6 @@
+.DS_Store
+selector-extension.zip
+docs/
+node_modules/
+test-results/
+playwright-report/
