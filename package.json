@@ -1,0 +1,7 @@
+{
+  "name": "selector-extension",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "zip -r selector-extension.zip manifest.json assets/ icons/ --exclude '*.DS_Store'"
+  }
+}
