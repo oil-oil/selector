@@ -15,11 +15,19 @@
       "48": "icons/icon48.png"
     }
   },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["assets/editor.js"],
-    "css": ["assets/editor.css"],
-    "run_at": "document_idle",
-    "world": "MAIN"
-  }]
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "assets/editor.js"
+      ],
+      "css": [
+        "assets/editor.css"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ]
 }

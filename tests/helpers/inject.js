@@ -8,7 +8,7 @@ function readAsset(relPath) {
   try {
     return fs.readFileSync(abs, 'utf8');
   } catch (e) {
-    throw new Error(`inject.js: cannot read asset "${abs}" — ${e.message}`);
+    throw new Error(`inject.js: cannot read asset "${abs}" — ${e.message}`, { cause: e });
   }
 }
 

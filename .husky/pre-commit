@@ -1,0 +1,2 @@
+pnpm exec eslint assets/editor.js tests/ scripts/
+pnpm test

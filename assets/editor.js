@@ -756,7 +756,7 @@
     ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
     document.body.appendChild(ta);
     ta.focus(); ta.select();
-    try { document.execCommand("copy"); } catch (_) {}
+    try { document.execCommand("copy"); } catch { /* ignore */ }
     ta.remove();
   }
 
@@ -814,7 +814,7 @@
       if (components.length) result.react = components.reverse().join(" \u203a ");
 
       return result;
-    } catch (_) {
+    } catch {
       return {};
     }
   }
@@ -828,7 +828,6 @@
       }
     }
     const reactInfo = getReactDebug(el);
-    const isReact = !!Object.keys(reactInfo).length;
     return {
       index,
       aiId: el.getAttribute(AI_ID),

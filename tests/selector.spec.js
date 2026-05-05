@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
     };
     try {
       Object.defineProperty(navigator, 'clipboard', { value: mockClipboard, writable: true, configurable: true });
-    } catch (_) {
+    } catch {
       navigator.clipboard = mockClipboard;
     }
   });

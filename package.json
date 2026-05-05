@@ -5,10 +5,18 @@
     "build": "zip -r selector-extension.zip manifest.json assets/ icons/ --exclude '*.DS_Store'",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.44.0",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7"
   },
   "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8"
 }
