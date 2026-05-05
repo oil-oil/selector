@@ -191,3 +191,29 @@ test.describe('Pause', () => {
     await expect(label).toHaveText('Selecting');
   });
 });
+
+// ── Annotation ────────────────────────────────────────────
+test.describe('Annotation', () => {
+  test('pencil button opens annotation popover with focused textarea', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+
+    await page.locator('.ai-editor-annotate-btn').click({ force: true });
+
+    await expect(page.locator('.ai-editor-annotate-popover')).toBeVisible();
+    await expect(page.locator('.ai-editor-annotate-input')).toBeFocused();
+  });
+
+  test('saved annotation appears in copied prompt', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+
+    await page.locator('.ai-editor-annotate-btn').click({ force: true });
+    await page.locator('.ai-editor-annotate-input').fill('Change font size to 24px');
+    await page.locator('.ai-editor-annotate-done').click({ force: true });
+
+    await page.locator('.ai-editor-copy-btn').click();
+    const text = await page.evaluate(() => window.__clipboardText);
+    expect(text).toContain('instruction: Change font size to 24px');
+  });
+});
