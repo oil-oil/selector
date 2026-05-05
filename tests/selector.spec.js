@@ -34,3 +34,32 @@ test.describe('Launcher', () => {
     await expect(launcher(page)).not.toHaveClass(/ai-editor-launcher-active/);
   });
 });
+
+// ── Selection ─────────────────────────────────────────────
+test.describe('Selection', () => {
+  test('click selects element — overlay and tag appear', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+
+    await expect(page.locator('.ai-editor-sel-box')).toBeVisible();
+    await expect(page.locator('.ai-editor-chat-tags .ai-editor-tag')).toHaveCount(1);
+  });
+
+  test('clicking a different element replaces selection', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await page.locator('#action-btn').click();
+
+    await expect(page.locator('.ai-editor-tag')).toHaveCount(1);
+    await expect(page.locator('.ai-editor-tag-label')).toContainText('action-btn');
+  });
+
+  test('shift+click adds to selection', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await page.locator('#action-btn').click({ modifiers: ['Shift'] });
+
+    await expect(page.locator('.ai-editor-tag')).toHaveCount(2);
+    await expect(page.locator('.ai-editor-sel-box')).toHaveCount(2);
+  });
+});
