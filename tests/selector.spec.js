@@ -136,3 +136,42 @@ test.describe('Copy Prompt', () => {
     expect(text).toMatch(/^Page:/m);
   });
 });
+
+// ── Keyboard navigation ───────────────────────────────────
+test.describe('Keyboard Navigation', () => {
+  test('ArrowUp navigates to parent element', async ({ page }) => {
+    await activate(page);
+    await page.locator('#item-1').click();
+
+    await page.keyboard.press('ArrowUp');
+
+    await expect(page.locator('.ai-editor-tag-label')).toContainText('container');
+  });
+
+  test('ArrowDown navigates to first child element', async ({ page }) => {
+    await activate(page);
+    await page.locator('#container').click();
+
+    await page.keyboard.press('ArrowDown');
+
+    await expect(page.locator('.ai-editor-tag-label')).toContainText('item');
+  });
+
+  test('ArrowRight navigates to next sibling', async ({ page }) => {
+    await activate(page);
+    await page.locator('#item-1').click();
+
+    await page.keyboard.press('ArrowRight');
+
+    await expect(page.locator('.ai-editor-tag-label')).toContainText('item-2');
+  });
+
+  test('ArrowLeft navigates to previous sibling', async ({ page }) => {
+    await activate(page);
+    await page.locator('#item-2').click();
+
+    await page.keyboard.press('ArrowLeft');
+
+    await expect(page.locator('.ai-editor-tag-label')).toContainText('item-1');
+  });
+});
