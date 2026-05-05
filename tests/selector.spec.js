@@ -150,11 +150,11 @@ test.describe('Keyboard Navigation', () => {
 
   test('ArrowDown navigates to first child element', async ({ page }) => {
     await activate(page);
-    await page.locator('#container').click();
+    await page.locator('#container').click({ position: { x: 5, y: 5 } });
 
     await page.keyboard.press('ArrowDown');
 
-    await expect(page.locator('.ai-editor-tag-label')).toContainText('item');
+    await expect(page.locator('.ai-editor-tag-label')).toContainText('item-1');
   });
 
   test('ArrowRight navigates to next sibling', async ({ page }) => {
