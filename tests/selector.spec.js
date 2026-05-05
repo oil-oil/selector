@@ -175,3 +175,19 @@ test.describe('Keyboard Navigation', () => {
     await expect(page.locator('.ai-editor-tag-label')).toContainText('item-1');
   });
 });
+
+// ── Pause ─────────────────────────────────────────────────
+test.describe('Pause', () => {
+  test('Space toggles status between Selecting and Paused', async ({ page }) => {
+    await activate(page);
+
+    const label = page.locator('.ai-editor-status-label');
+    await expect(label).toHaveText('Selecting');
+
+    await page.keyboard.press(' ');
+    await expect(label).toHaveText('Paused');
+
+    await page.keyboard.press(' ');
+    await expect(label).toHaveText('Selecting');
+  });
+});
