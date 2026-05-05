@@ -10,6 +10,18 @@ const FIXTURE_HTML = fs.readFileSync(
 
 test.beforeEach(async ({ page }) => {
   await page.setContent(FIXTURE_HTML);
+  // Install clipboard mock after setContent so it is available when editor.js runs.
+  await page.evaluate(() => {
+    window.__clipboardText = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: (text) => { window.__clipboardText = text; return Promise.resolve(); },
+        readText:  ()     => Promise.resolve(window.__clipboardText),
+      },
+      writable: true,
+      configurable: true,
+    });
+  });
   await injectSelector(page);
 });
 
@@ -86,5 +98,40 @@ test.describe('Clear', () => {
 
     await expect(page.locator('.ai-editor-tag')).toHaveCount(1);
     await expect(page.locator('.ai-editor-sel-box')).toHaveCount(1);
+  });
+});
+
+// ── Copy prompt ───────────────────────────────────────────
+test.describe('Copy Prompt', () => {
+  test('Copy button is disabled with no selection', async ({ page }) => {
+    await activate(page);
+    await expect(page.locator('.ai-editor-copy-btn')).toBeDisabled();
+  });
+
+  test('Copy button is enabled after selection', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await expect(page.locator('.ai-editor-copy-btn')).toBeEnabled();
+  });
+
+  test('Copy button writes formatted prompt to clipboard', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await page.locator('.ai-editor-copy-btn').click();
+
+    const text = await page.evaluate(() => window.__clipboardText);
+    expect(text).toMatch(/^Page:/m);
+    expect(text).toMatch(/#intro-para|intro-para/);
+    expect(text).toMatch(/selector:/);
+  });
+
+  test('Cmd+C copies prompt when element is selected', async ({ page }) => {
+    await activate(page);
+    await page.locator('#intro-para').click();
+    await page.locator('body').focus();
+    await page.keyboard.press('Meta+c');
+
+    const text = await page.evaluate(() => window.__clipboardText);
+    expect(text).toMatch(/^Page:/m);
   });
 });
