@@ -8,7 +8,7 @@
 
   const NS = "ai-editor";
   const AI_ID = "data-ai-id";
-  const VERSION = "0.3.0";
+  const VERSION = "0.3.1";
 
   // ── i18n ─────────────────────────────────────────────────────
   const DICT = {
@@ -702,14 +702,49 @@
     ta.remove();
   }
 
-  function currentPageUrl() {
-    return location.href;
+  function currentPageContext() {
+    try {
+      const url = new URL(location.href);
+      if (!url.search || location.href.length <= 160) return { page: location.href, query: "" };
+      return {
+        page: url.origin + url.pathname + url.hash,
+        query: compactQuery(url.searchParams),
+      };
+    } catch(_) {
+      return { page: location.href, query: "" };
+    }
+  }
+
+  function compactQuery(searchParams) {
+    const grouped = new Map();
+    for (const [key, value] of searchParams.entries()) {
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(value);
+    }
+    return Array.from(grouped.entries()).map(([key, values]) => {
+      const compactValues = unique(values.map(compactQueryValue));
+      if (values.length > 1) {
+        return compactValues.length === 1 ? `${key}=${compactValues[0]} ×${values.length}` : `${key} ×${values.length}`;
+      }
+      return `${key}=${compactValues[0]}`;
+    }).join(", ");
+  }
+
+  function compactQueryValue(value) {
+    if (!value) return "";
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+      return value.slice(0, 8) + "…" + value.slice(-4);
+    }
+    return value.length > 48 ? value.slice(0, 32) + "…" + value.slice(-8) : value;
   }
 
   // ── Prompt building ────────────────────────────────────────
   function buildPromptText() {
     if (selectedElements.length === 0) return "";
-    const lines = ["Page: " + currentPageUrl(), ""];
+    const pageContext = currentPageContext();
+    const lines = ["Page: " + pageContext.page];
+    if (pageContext.query) lines.push("Query: " + pageContext.query);
+    lines.push("");
     selectedElements.forEach((el, i) => {
       const aiId = el.getAttribute(AI_ID);
       const note = annotations.get(aiId);

@@ -29,6 +29,7 @@ Open any web page, click the **Selector** bookmark.
 | **Esc** | Clear selection |
 
 The copied prompt includes a compact, fact-based element summary: readable element name, stable locator, semantic location, React component info, and filtered props when available. Selector keeps long CSS selectors, layout, parent, or HTML context as fallbacks, and only includes them when the page structure makes that context useful.
+Long page URLs are split into a route plus a compact query summary, so filter-heavy local pages stay readable.
 
 ## Example output
 
@@ -46,6 +47,13 @@ Page: https://example.com/dashboard?tab=overview
    locator: nav "Home Settings Profile Logout"
    inside: main "Dashboard"
    instruction: Add an "Analytics" link after "Settings"
+```
+
+For long filtered pages, the copied prompt is shortened like this:
+
+```
+Page: http://localhost:3000/campaigns/2079fa76-9c77-4900-b11a-086f4464ff2b/settlement
+Query: date_from=2026-05-23, date_to=2026-06-22, creator_ids ×2
 ```
 
 ## How it works
