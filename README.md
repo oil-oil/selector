@@ -1,4 +1,4 @@
-# Selector
+# <img src="assets/favicon.svg" width="24" height="24" alt=""> Selector
 
 Point at any element. Tell your AI what to change.
 
@@ -9,6 +9,8 @@ A bookmarklet that lets you visually select elements on any web page, add instru
 1. Visit the **[install page](https://oil-oil.github.io/selector/)**
 2. Drag the **Selector** button to your bookmarks bar (one-time)
 3. Done
+
+The install page follows your browser language and includes an English / Chinese toggle.
 
 ## Usage
 
@@ -25,8 +27,7 @@ Open any web page, click the **Selector** bookmark.
 | **⌘C** | Copy prompt to clipboard |
 | **⌘⇧C** | Copy selected area screenshot |
 | **⌘Z** | Undo last selection change |
-| **Space** | Pause / resume selecting |
-| **Esc** | Clear selection |
+| **Esc** | Pause / resume when empty, clear selection when selected |
 
 The copied prompt includes a compact, fact-based element summary: readable element name, stable locator, semantic location, React component info, and filtered props when available. Selector keeps long CSS selectors, layout, parent, or HTML context as fallbacks, and only includes them when the page structure makes that context useful.
 Long page URLs are split into a route plus a compact query summary, so filter-heavy local pages stay readable.

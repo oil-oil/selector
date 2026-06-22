@@ -385,11 +385,21 @@
   background: #f5f5f5;
 }
 
-/* ── Copy Prompt button ──────────────────────────────────── */
+/* ── Action buttons ──────────────────────────────────────── */
+.ai-editor-action-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px 8px 8px;
+}
+
 .ai-editor-copy-btn {
-  display: block;
-  width: calc(100% - 16px);
-  margin: 6px 8px 0;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
   padding: 8px 0;
   border: none;
   border-radius: 8px;
@@ -419,31 +429,31 @@
 
 .ai-editor-copy-btn.ai-editor-copy-done {
   background: #16a34a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 4px;
 }
 
 /* ── Copy Screenshot button ─────────────────────────────── */
 .ai-editor-screenshot-btn {
-  display: block;
-  width: calc(100% - 16px);
-  margin: 6px 8px 8px;
-  padding: 8px 0;
-  border: 1.5px solid #111;
+  flex: 0 0 40px;
+  width: 40px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #dedede;
   border-radius: 8px;
-  background: #fff;
-  color: #111;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  background: #fafafa;
+  color: #777;
   cursor: pointer;
-  transition: background 150ms, transform 100ms, color 150ms;
+  transition: background 150ms, border-color 150ms, transform 100ms, color 150ms;
 }
 
 .ai-editor-screenshot-btn:hover {
-  background: #f5f5f5;
+  border-color: #bbb;
+  background: #fff;
+  color: #111;
 }
 
 .ai-editor-screenshot-btn:active {
@@ -452,23 +462,22 @@
 
 .ai-editor-screenshot-btn:disabled {
   border-color: #e0e0e0;
-  color: #aaa;
+  background: #f3f3f3;
+  color: #c4c4c4;
   cursor: default;
   transform: none;
 }
 
 .ai-editor-screenshot-btn:disabled:hover {
-  background: #fff;
+  border-color: #e0e0e0;
+  background: #f3f3f3;
+  color: #c4c4c4;
 }
 
 .ai-editor-screenshot-btn.ai-editor-screenshot-done {
   border-color: #16a34a;
   background: #16a34a;
   color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
 }
 
 .ai-editor-screenshot-btn.ai-editor-screenshot-error {

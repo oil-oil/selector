@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Selector — Visual Element Picker</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%23111'/></svg>">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -17,8 +17,13 @@
        display:inline-block;margin-right:8px;
        animation:pulse 2.4s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .status{display:flex;align-items:center;margin-bottom:32px;font-size:11px;color:#404040;letter-spacing:.1em;text-transform:uppercase}
+  .status{display:flex;align-items:center;gap:8px;margin-bottom:32px;font-size:11px;color:#404040;letter-spacing:.1em;text-transform:uppercase}
+  .status-main{display:flex;align-items:center;min-width:0;flex:1}
   .version{margin-left:8px;color:#333;letter-spacing:0;text-transform:none}
+  .lang-switch{display:flex;align-items:center;gap:6px;letter-spacing:0;text-transform:none}
+  .lang-btn{appearance:none;border:0;background:transparent;color:#333;font:inherit;font-size:10px;cursor:pointer;padding:0}
+  .lang-btn:hover,.lang-btn.active{color:#888}
+  .lang-sep{color:#222}
   h1{font-size:20px;font-weight:500;color:#fff;margin-bottom:6px;letter-spacing:-.02em}
   .sub{font-size:12px;color:#505050;margin-bottom:44px;line-height:1.6}
   .steps{display:flex;flex-direction:column;gap:32px}
@@ -48,12 +53,71 @@
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  var version = "0.3.1";
+  var version = "0.3.3";
   var base = location.href.replace(/[^/]*$/, "");
   var link = document.getElementById("bm-link");
+  var dict = {
+    en: {
+      title: "Selector — Visual Element Picker",
+      status: "install",
+      subtitle: "Point at any element. Tell your AI what to change.",
+      step1Title: "Drag to bookmarks bar",
+      setup: "one-time setup",
+      error: "Failed to load assets. Make sure this page is served over HTTP(S).",
+      step2Title: "Click the bookmark on any page",
+      works: "Works everywhere — <code>localhost</code> · React · Next.js · production URLs",
+      step3Title: "Select → Copy → Paste into your AI",
+      copyNote: "<span class=\"kbd\">⌘C</span> copies a structured prompt with element metadata<br>Paste into Claude Code · Codex · Cursor · any AI assistant",
+    },
+    zh: {
+      title: "Selector — 可视化元素选择器",
+      status: "安装",
+      subtitle: "选中页面元素，把修改意图准确交给 AI。",
+      step1Title: "拖到书签栏",
+      setup: "只需要设置一次",
+      error: "资源加载失败。请确认这个页面通过 HTTP(S) 打开。",
+      step2Title: "在任意页面点击书签",
+      works: "支持常见页面 — <code>localhost</code> · React · Next.js · 线上环境",
+      step3Title: "选择 → 复制 → 粘贴给 AI",
+      copyNote: "<span class=\"kbd\">⌘C</span> 复制带元素上下文的结构化提示词<br>可粘贴到 Claude Code · Codex · Cursor · 任意 AI 助手",
+    },
+  };
+  var lang = loadLang();
+
+  function loadLang() {
+    try {
+      var stored = localStorage.getItem("selector-install-lang");
+      if (stored === "zh" || stored === "en") return stored;
+    } catch (_) {}
+    return /^zh\b/i.test(navigator.language || "") ? "zh" : "en";
+  }
+
+  function setLang(nextLang) {
+    lang = nextLang === "zh" ? "zh" : "en";
+    try { localStorage.setItem("selector-install-lang", lang); } catch (_) {}
+    applyI18n();
+  }
+
+  function applyI18n() {
+    var texts = dict[lang] || dict.en;
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = texts.title;
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (texts[key]) el.innerHTML = texts[key];
+    });
+    document.querySelectorAll("[data-lang]").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+    });
+  }
+
+  document.querySelectorAll("[data-lang]").forEach(function (btn) {
+    btn.addEventListener("click", function () { setLang(btn.getAttribute("data-lang")); });
+  });
   document.querySelectorAll("[data-version]").forEach(function (el) {
     el.textContent = "v" + version;
   });
+  applyI18n();
 
   Promise.all([
     fetch(base + "assets/editor.css").then(function (r) { return r.text(); }),
@@ -86,31 +150,38 @@ document.addEventListener("DOMContentLoaded", function () {
 </head>
 <body>
 <div class="wrap">
-  <div class="status"><span class="dot"></span>install <span class="version" data-version></span></div>
+  <div class="status">
+    <span class="status-main"><span class="dot"></span><span data-i18n="status">install</span> <span class="version" data-version></span></span>
+    <span class="lang-switch" aria-label="Language">
+      <button class="lang-btn" type="button" data-lang="en">EN</button>
+      <span class="lang-sep">/</span>
+      <button class="lang-btn" type="button" data-lang="zh">中文</button>
+    </span>
+  </div>
   <h1>Selector</h1>
-  <p class="sub">Point at any element. Tell your AI what to change.</p>
+  <p class="sub" data-i18n="subtitle">Point at any element. Tell your AI what to change.</p>
   <div class="steps">
     <div class="step">
       <span class="num">01</span>
       <div class="step-body">
-        <div class="step-title">Drag to bookmarks bar</div>
+        <div class="step-title" data-i18n="step1Title">Drag to bookmarks bar</div>
         <a class="bm loading" id="bm-link" href="#">Selector</a>
-        <p class="note">one-time setup</p>
-        <p class="err" id="bm-err">Failed to load assets. Make sure this page is served over HTTP(S).</p>
+        <p class="note" data-i18n="setup">one-time setup</p>
+        <p class="err" id="bm-err" data-i18n="error">Failed to load assets. Make sure this page is served over HTTP(S).</p>
       </div>
     </div>
     <div class="step">
       <span class="num">02</span>
       <div class="step-body">
-        <div class="step-title">Click the bookmark on any page</div>
-        <p class="note">Works everywhere &mdash; <code>localhost</code> &middot; React &middot; Next.js &middot; production URLs</p>
+        <div class="step-title" data-i18n="step2Title">Click the bookmark on any page</div>
+        <p class="note" data-i18n="works">Works everywhere &mdash; <code>localhost</code> &middot; React &middot; Next.js &middot; production URLs</p>
       </div>
     </div>
     <div class="step">
       <span class="num">03</span>
       <div class="step-body">
-        <div class="step-title">Select &rarr; Copy &rarr; Paste into your AI</div>
-        <p class="note">
+        <div class="step-title" data-i18n="step3Title">Select &rarr; Copy &rarr; Paste into your AI</div>
+        <p class="note" data-i18n="copyNote">
           <span class="kbd">&#8984;C</span> copies a structured prompt with element metadata<br>
           Paste into Claude Code &middot; Codex &middot; Cursor &middot; any AI assistant
         </p>

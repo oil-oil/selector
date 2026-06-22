@@ -8,7 +8,7 @@
 
   const NS = "ai-editor";
   const AI_ID = "data-ai-id";
-  const VERSION = "0.3.1";
+  const VERSION = "0.3.3";
 
   // ── i18n ─────────────────────────────────────────────────────
   const DICT = {
@@ -256,7 +256,14 @@
   function handleKeyDown(e) {
     if (isEditorElement(e.target)&&(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")) return;
     const mod=e.metaKey||e.ctrlKey;
-    if(e.key==="Escape"){ if(activePopover) removeAnnotationPopover(); else if(settingsOpen) closeSettings(); else{pushHistory();clearSelection();updateTags();} return; }
+    if(e.key==="Escape"){
+      e.preventDefault();
+      if(activePopover) removeAnnotationPopover();
+      else if(settingsOpen) closeSettings();
+      else if(selectedElements.length>0){ pushHistory(); clearSelection(); updateTags(); }
+      else togglePaused();
+      return;
+    }
     if(mod&&e.key.toLowerCase()==="c"&&!e.shiftKey&&selectedElements.length>0){ e.preventDefault(); copyPrompt(); return; }
     if(mod&&e.shiftKey&&e.key.toLowerCase()==="c"&&selectedElements.length>0){ e.preventDefault(); captureScreenshot(); return; }
     if(mod&&e.key.toLowerCase()==="z"&&!e.shiftKey){ e.preventDefault(); undo(); return; }
@@ -264,7 +271,6 @@
     if(e.key==="ArrowDown"&&selectedElements.length===1){ e.preventDefault(); navigateToChild(); return; }
     if(e.key==="ArrowLeft"&&selectedElements.length===1){ e.preventDefault(); navigateToSibling(-1); return; }
     if(e.key==="ArrowRight"&&selectedElements.length===1){ e.preventDefault(); navigateToSibling(1); return; }
-    if(e.key===" "&&!mod&&!e.altKey){ e.preventDefault(); togglePaused(); }
   }
 
   function togglePaused() {
@@ -297,6 +303,7 @@
 
   // ── Settings panel ──────────────────────────────────────────
   const GEAR_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+  const CAMERA_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   function mkToggle(key) {
     const row = document.createElement("div"); row.className = `${NS}-setting-row`;
@@ -392,7 +399,7 @@
     const cb = chatPanel.querySelector(`.${NS}-copy-btn`);
     if (cb && !cb.classList.contains(`${NS}-copy-done`)) cb.textContent = t("copyPrompt");
     if (screenshotBtn && !screenshotBtn.classList.contains(`${NS}-screenshot-done`) && !screenshotBtn.classList.contains(`${NS}-screenshot-error`))
-      screenshotBtn.textContent = t("copyScreenshot");
+      setScreenshotButtonIdle();
     const minBtn = chatPanel.querySelector('[data-action="minimize"]');
     if (minBtn) minBtn.title = minimized ? t("restore") : t("minimize");
     const closeBtn = chatPanel.querySelector('[data-action="close"]');
@@ -408,11 +415,9 @@
       `<span><kbd>Click</kbd> ${t("skSelect")}</span>`,
       `<span><kbd>Shift</kbd> ${t("skMulti")}</span>`,
       `<span><kbd>\u2190\u2191\u2192\u2193</kbd> ${t("skNavigate")}</span>`,
-      `<span><kbd>Space</kbd> ${t("skPause")}</span>`,
       `<span><kbd>\u2318C</kbd> ${t("skCopy")}</span>`,
-      `<span><kbd>\u2318\u21E7C</kbd> ${t("skScreenshot")}</span>`,
       `<span><kbd>\u2318Z</kbd> ${t("skUndo")}</span>`,
-      `<span><kbd>Esc</kbd> ${t("skClear")}</span>`,
+      `<span><kbd>Esc</kbd> ${selectedElements.length ? t("skClear") : t("skPause")}</span>`,
     ].join("");
   }
 
@@ -439,8 +444,10 @@
       <div class="${NS}-panel-body">
         <div class="${NS}-chat-tags ${NS}-hidden"></div>
         <div class="${NS}-shortcuts"></div>
-        <button class="${NS}-copy-btn" disabled>Copy Prompt</button>
-        <button class="${NS}-screenshot-btn" disabled>Copy Screenshot</button>
+        <div class="${NS}-action-row">
+          <button class="${NS}-copy-btn" disabled>Copy Prompt</button>
+          <button class="${NS}-screenshot-btn" disabled title="Copy Screenshot" aria-label="Copy Screenshot">${CAMERA_SVG}</button>
+        </div>
       </div>`;
     document.body.appendChild(chatPanel);
     chatPanel.querySelector(`.${NS}-copy-btn`).onclick = () => copyPrompt();
@@ -508,6 +515,7 @@
       container.classList.add(`${NS}-hidden`); copyBtn.disabled=true;
       if (screenshotBtn) screenshotBtn.disabled=true;
     }
+    updateShortcuts();
   }
 
   // ── Copy feedback ───────────────────────────────────────────
@@ -526,14 +534,24 @@
 
   // ── Screenshot capture ─────────────────────────────────────
   let screenshotTimer = null;
+  function setScreenshotButtonIdle() {
+    if (!screenshotBtn) return;
+    screenshotBtn.innerHTML = CAMERA_SVG;
+    screenshotBtn.title = t("copyScreenshot");
+    screenshotBtn.setAttribute("aria-label", t("copyScreenshot"));
+  }
+
   function showScreenshotFeedback(msg, isError, detail) {
     const btn = chatPanel.querySelector(`.${NS}-screenshot-btn`);
     if (screenshotTimer) clearTimeout(screenshotTimer);
     btn.classList.remove(`${NS}-screenshot-done`, `${NS}-screenshot-error`);
     btn.classList.add(isError ? `${NS}-screenshot-error` : `${NS}-screenshot-done`);
-    btn.title = detail || "";
-    btn.innerHTML = isError ? msg : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${msg}`;
-    screenshotTimer = setTimeout(() => { btn.classList.remove(`${NS}-screenshot-done`, `${NS}-screenshot-error`); btn.textContent = t("copyScreenshot"); btn.title = ""; screenshotTimer = null; }, 2400);
+    btn.title = detail || msg;
+    btn.setAttribute("aria-label", detail || msg);
+    btn.innerHTML = isError
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    screenshotTimer = setTimeout(() => { btn.classList.remove(`${NS}-screenshot-done`, `${NS}-screenshot-error`); setScreenshotButtonIdle(); screenshotTimer = null; }, 2400);
   }
 
   async function captureScreenshot() {
