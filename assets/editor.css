@@ -255,6 +255,14 @@
   color: #bbb;
 }
 
+.ai-editor-version {
+  color: #d8d8d8;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 .ai-editor-panel-actions {
   display: flex;
   gap: 1px;

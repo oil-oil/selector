@@ -8,6 +8,7 @@
 
   const NS = "ai-editor";
   const AI_ID = "data-ai-id";
+  const VERSION = "0.3.0";
 
   // ── i18n ─────────────────────────────────────────────────────
   const DICT = {
@@ -17,14 +18,10 @@
       settings:"Settings", lang:"Language", addInstruction:"Add instruction",
       instrPlaceholder:"Instruction for this element\u2026", clear:"Clear", done:"Done",
       clearAll:"Clear all", minimize:"Minimize", restore:"Restore", close:"Close",
-      groupGeneral:"General", groupContext:"Context in Prompt",
+      groupGeneral:"General",
       skSelect:"Select", skMulti:"Multi", skNavigate:"Navigate", skPause:"Pause",
       skCopy:"Copy", skScreenshot:"Screenshot", skUndo:"Undo", skClear:"Clear",
-      optStyles:"Include computed styles", optStylesDesc:"Add key CSS property values to prompt",
-      optHtml:"Include HTML snippet", optHtmlDesc:"Add a capped element HTML snippet to prompt",
       optCombined:"Screenshot + text combined", optCombinedDesc:"Copy screenshot and prompt text together",
-      optParent:"Parent container context", optParentDesc:"Include parent element info in prompt",
-      optReact:"React props", optReactDesc:"Extract component props from fiber",
       errUnsupported:"Browser not supported", errCancelled:"Screen choice cancelled",
       errPermission:"Screen recording blocked", errClipboard:"Clipboard blocked",
       errCapture:"Screenshot failed", errEmpty:"Selected area is empty",
@@ -35,14 +32,10 @@
       settings:"\u8bbe\u7f6e", lang:"\u8bed\u8a00", addInstruction:"\u6dfb\u52a0\u6307\u4ee4",
       instrPlaceholder:"\u6b64\u5143\u7d20\u7684\u4fee\u6539\u6307\u4ee4\u2026", clear:"\u6e05\u9664", done:"\u5b8c\u6210",
       clearAll:"\u6e05\u9664\u5168\u90e8", minimize:"\u6700\u5c0f\u5316", restore:"\u6062\u590d", close:"\u5173\u95ed",
-      groupGeneral:"\u901a\u7528", groupContext:"\u63d0\u793a\u8bcd\u4e0a\u4e0b\u6587",
+      groupGeneral:"\u901a\u7528",
       skSelect:"\u9009\u62e9", skMulti:"\u591a\u9009", skNavigate:"\u5bfc\u822a", skPause:"\u6682\u505c",
       skCopy:"\u590d\u5236", skScreenshot:"\u622a\u56fe", skUndo:"\u64a4\u9500", skClear:"\u6e05\u9664",
-      optStyles:"\u5305\u542b\u8ba1\u7b97\u6837\u5f0f", optStylesDesc:"\u5728\u63d0\u793a\u8bcd\u4e2d\u6dfb\u52a0\u5173\u952e CSS \u5c5e\u6027\u503c",
-      optHtml:"\u5305\u542b HTML \u7247\u6bb5", optHtmlDesc:"\u5728\u63d0\u793a\u8bcd\u4e2d\u6dfb\u52a0\u6709\u957f\u5ea6\u4e0a\u9650\u7684\u5143\u7d20 HTML",
       optCombined:"\u622a\u56fe + \u6587\u672c\u5408\u5e76", optCombinedDesc:"\u540c\u65f6\u590d\u5236\u622a\u56fe\u548c\u63d0\u793a\u8bcd\u6587\u672c",
-      optParent:"\u7236\u5bb9\u5668\u4e0a\u4e0b\u6587", optParentDesc:"\u5728\u63d0\u793a\u8bcd\u4e2d\u5305\u542b\u7236\u5143\u7d20\u4fe1\u606f",
-      optReact:"React props", optReactDesc:"\u4ece fiber \u6811\u63d0\u53d6\u7ec4\u4ef6\u5c5e\u6027",
       errUnsupported:"\u6d4f\u89c8\u5668\u4e0d\u652f\u6301", errCancelled:"\u5df2\u53d6\u6d88\u5c4f\u5e55\u9009\u62e9",
       errPermission:"\u5c4f\u5e55\u5f55\u5236\u6743\u9650\u53d7\u9650", errClipboard:"\u526a\u8d34\u677f\u6743\u9650\u53d7\u9650",
       errCapture:"\u622a\u56fe\u5931\u8d25", errEmpty:"\u9009\u4e2d\u533a\u57df\u65e0\u6cd5\u622a\u56fe",
@@ -53,7 +46,7 @@
   function t(k) { return (DICT[lang] && DICT[lang][k]) || DICT.en[k] || k; }
 
   // ── Settings ─────────────────────────────────────────────────
-  const DEFAULTS = { styles:false, html:false, combined:false, parent:false, react:false };
+  const DEFAULTS = { combined:false };
   let settings = Object.assign({}, DEFAULTS);
   try { var s = JSON.parse(localStorage.getItem(NS + "-settings")); if (s) settings = Object.assign({}, DEFAULTS, s); } catch(_) {}
   function saveSettings() { try { localStorage.setItem(NS + "-settings", JSON.stringify(settings)); } catch(_) {} }
@@ -109,6 +102,8 @@
 
   // ── Resolve target ───────────────────────────────────────────
   function resolveTarget(el) {
+    const action = closestActionElement(el);
+    if (action && !isEditorElement(action) && isVisible(action)) return action;
     let cur = el;
     while (cur && cur !== document.body && cur !== document.documentElement) {
       if (isEditorElement(cur)) { cur = cur.parentElement; continue; }
@@ -118,6 +113,10 @@
     }
     return el;
   }
+
+  function closestActionElement(el) {
+    return el && el.closest && el.closest("button,a,input,select,textarea,[role='button'],[role='link'],[role='menuitem'],[role='tab'],[role='checkbox'],[role='radio']");
+  }
   function isVisible(el) {
     const r = el.getBoundingClientRect();
     if (r.width < 2 && r.height < 2) return false;
@@ -125,9 +124,16 @@
     return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0";
   }
   function isMeaningful(el) {
+    if (isAtomicElement(el)) return true;
     if (hasDirectText(el)) return true;
     if (el.querySelector("img,video,canvas,svg,button,a,input,select,textarea,iframe")) return true;
     return el.children.length > 1;
+  }
+
+  function isAtomicElement(el) {
+    const tag = el.tagName && el.tagName.toLowerCase();
+    if (/^(button|a|input|select|textarea|img|video|canvas|svg|iframe|h[1-6]|p|li|dt|dd|summary)$/.test(tag)) return true;
+    return !!el.getAttribute("role");
   }
   function hasDirectText(el) {
     for (const n of el.childNodes) { if (n.nodeType === 3 && n.textContent.trim()) return true; }
@@ -345,8 +351,6 @@
     settingsPanel.appendChild(mkSettingGroup("general"));
     settingsPanel.appendChild(langWrap);
     settingsPanel.appendChild(mkToggle("combined"));
-    settingsPanel.appendChild(mkSettingGroup("context"));
-    ["styles","html","parent","react"].forEach(k => settingsPanel.appendChild(mkToggle(k)));
     document.body.appendChild(settingsPanel);
     const cr = chatPanel.getBoundingClientRect();
     settingsPanel.style.bottom = (window.innerHeight - cr.top + 4) + "px";
@@ -420,6 +424,7 @@
         <span class="${NS}-drag-title">
           <span class="${NS}-status-dot"></span>
           <span class="${NS}-status-label">Selecting</span>
+          <span class="${NS}-version">v${VERSION}</span>
         </span>
         <div class="${NS}-panel-actions">
           <button class="${NS}-panel-btn" data-action="settings" title="Settings">${GEAR_SVG}</button>
@@ -470,11 +475,13 @@
 
   // ── Element label ───────────────────────────────────────────
   function elementLabel(el) {
+    const role = explicitOrImplicitRole(el);
+    const label = accessibleLabel(el);
+    if (role && label) return `${role} "${label}"`;
+    if (label) return `${el.tagName.toLowerCase()} "${label}"`;
     if (el.id) return `#${el.id}`;
     if (el.classList.length) return `.${el.classList[0]}`;
-    const tag=el.tagName.toLowerCase(), text=(el.textContent||"").trim();
-    if (text) { const p=text.length>20?text.slice(0,20)+"\u2026":text; return `${tag} "${p}"`; }
-    return `<${tag}>`;
+    return `<${el.tagName.toLowerCase()}>`;
   }
 
   // ── Tags ────────────────────────────────────────────────────
@@ -537,10 +544,16 @@
     }
 
     const image = defer();
-    const itemData = { "image/png": image.promise };
+    let itemData = { "image/png": image.promise };
     if (settings.combined) {
       const text = buildPromptText();
-      if (text) itemData["text/plain"] = new Blob([text], { type: "text/plain" });
+      if (text) {
+        itemData = {
+          "text/html": image.promise.then(blob => screenshotHtmlBlob(text, blob)),
+          "text/plain": new Blob([text], { type: "text/plain" }),
+          "image/png": image.promise,
+        };
+      }
     }
 
     let writePromise;
@@ -648,6 +661,35 @@
     return video;
   }
 
+  async function screenshotHtmlBlob(text, imageBlob) {
+    const imageUrl = await blobToDataUrl(imageBlob);
+    return new Blob([
+      '<div data-selector-copy="screenshot-text">',
+      '<pre style="white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;margin:0 0 12px;">',
+      escapeHtml(text),
+      '</pre>',
+      '<img alt="Selector screenshot" src="',
+      imageUrl,
+      '" style="max-width:100%;height:auto;">',
+      '</div>',
+    ], { type: "text/html" });
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error("Could not encode screenshot"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[ch]));
+  }
+
   // ── Clipboard helpers ──────────────────────────────────────
   function writeToClipboard(text) {
     if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
@@ -660,35 +702,42 @@
     ta.remove();
   }
 
+  function currentPageUrl() {
+    return location.href;
+  }
+
   // ── Prompt building ────────────────────────────────────────
   function buildPromptText() {
     if (selectedElements.length === 0) return "";
-    const lines = ["Page: " + location.pathname, ""];
+    const lines = ["Page: " + currentPageUrl(), ""];
     selectedElements.forEach((el, i) => {
-      const ctx = buildElementContext(el, i + 1);
-      lines.push(`${i + 1}. ${elementLabel(el)} <${ctx.tag}>`);
+      const aiId = el.getAttribute(AI_ID);
+      const note = annotations.get(aiId);
+      const ctx = buildElementContext(el, i + 1, note);
+      lines.push(`${i + 1}. ${ctx.title} <${ctx.tag}>`);
       if (ctx.selector) lines.push(`   selector: ${ctx.selector}`);
       if (ctx.locator) lines.push(`   locator: ${ctx.locator}`);
+      if (ctx.inside) lines.push(`   inside: ${ctx.inside}`);
       if (ctx.source) lines.push(`   source: ${ctx.source}`);
       if (ctx.react) lines.push(`   react: ${ctx.react}`);
       if (ctx.text) lines.push(`   text: "${ctx.text}"`);
       Object.entries(ctx.dataAttrs).forEach(([k, v]) => lines.push(`   ${k}: ${v}`));
-      if (settings.styles && ctx.computed) lines.push(`   computed: ${ctx.computed}`);
-      if (settings.html && ctx.outerHTML) lines.push(`   html: ${ctx.outerHTML}`);
-      if (settings.parent && ctx.parent) lines.push(`   parent: ${ctx.parent}`);
-      if (settings.react && ctx.reactProps) lines.push(`   props: ${ctx.reactProps}`);
-      const aiId = el.getAttribute(AI_ID);
-      const note = annotations.get(aiId);
+      if (ctx.visual) lines.push(`   visual: ${ctx.visual}`);
+      if (ctx.layout) lines.push(`   layout: ${ctx.layout}`);
+      if (ctx.parent) lines.push(`   parent: ${ctx.parent}`);
+      if (ctx.outerHTML) lines.push(`   html: ${ctx.outerHTML}`);
+      if (ctx.reactProps) lines.push(`   props: ${ctx.reactProps}`);
       if (note) lines.push(`   instruction: ${note}`);
     });
     return lines.join("\n");
   }
 
   // ── Computed styles ────────────────────────────────────────
-  const STYLE_KEYS = ["display","flex-direction","gap","padding","margin","font-size","font-weight","color","background","background-color","border","border-radius","width","height","max-width","max-height","overflow","position","z-index","opacity","box-shadow","text-align","line-height","letter-spacing"];
-  function getComputedStylesStr(el) {
+  const LAYOUT_STYLE_KEYS = ["display","flex-direction","align-items","justify-content","gap","grid-template-columns","padding","margin","width","height","position","z-index","overflow","text-align"];
+  function getLayoutSummary(el) {
     const cs = getComputedStyle(el);
-    return STYLE_KEYS.map(k => `${k}:${cs.getPropertyValue(k)}`).filter(s => !s.endsWith(":")).join("; ");
+    const keys = smartStyleKeys(el, cs);
+    return keys.map(k => `${k}:${compactCssValue(cs.getPropertyValue(k))}`).filter(s => !s.endsWith(":")).join("; ");
   }
 
   // ── Parent context ─────────────────────────────────────────
@@ -696,10 +745,66 @@
     const p = el.parentElement;
     if (!p || p === document.body || p === document.documentElement) return null;
     const tag = p.tagName.toLowerCase();
-    const id = p.id ? `#${p.id}` : "";
-    const cls = p.classList.length ? `.${Array.from(p.classList).slice(0, 3).join(".")}` : "";
+    const id = p.id && isStableToken(p.id) ? `#${p.id}` : "";
+    const cls = stableClasses(p).slice(0, 2).map(c => "." + c).join("");
     const cs = getComputedStyle(p);
-    return `<${tag}${id}${cls}> display:${cs.display}; ${cs.flexDirection ? "flex-direction:" + cs.flexDirection + "; " : ""}gap:${cs.gap}; padding:${cs.padding}`;
+    const bits = [`<${tag}${id}${cls}>`, `display:${cs.display}`];
+    if (cs.display.includes("flex")) bits.push(`flex-direction:${cs.flexDirection}`, `align-items:${cs.alignItems}`, `justify-content:${cs.justifyContent}`);
+    if (cs.display.includes("grid")) bits.push(`grid-template-columns:${compactCssValue(cs.gridTemplateColumns)}`);
+    if (cs.gap && cs.gap !== "normal") bits.push(`gap:${cs.gap}`);
+    return bits.join("; ");
+  }
+
+  function smartStyleKeys(el, cs) {
+    const keys = ["display"];
+    if (cs.display.includes("flex")) keys.push("flex-direction","align-items","justify-content","gap");
+    if (cs.display.includes("grid")) keys.push("grid-template-columns","gap");
+    if (selectedElements.length > 1 || isPositioned(el)) keys.push("width","height");
+    if (cs.position !== "static") keys.push("position","z-index");
+    if (isScrollable(el)) keys.push("overflow");
+    return unique(keys).filter(k => LAYOUT_STYLE_KEYS.includes(k));
+  }
+
+  function shouldIncludeLayout(el) {
+    const cs = getComputedStyle(el);
+    if (selectedElements.length > 1) return hasMeaningfulLayout(el, cs) && !isSimpleInlineLabel(el, cs);
+    if (cs.position !== "static" || isScrollable(el)) return true;
+    if (cs.display.includes("grid")) return true;
+    if (cs.display.includes("flex")) {
+      const children = visibleChildren(el);
+      if (children.length > 1) return true;
+      if (hasNonDefaultFlex(cs) && !isSimpleInlineLabel(el, cs)) return true;
+    }
+    return false;
+  }
+
+  function shouldIncludeParent(el) {
+    const p = el.parentElement;
+    if (!p || p === document.body || p === document.documentElement) return false;
+    const cs = getComputedStyle(p);
+    if (selectedElements.length > 1) return (cs.display.includes("flex") || cs.display.includes("grid")) && visibleChildren(p).length > 1;
+    if (isAtomicElement(el)) return false;
+    if (isInsideStructuredContainer(el)) return false;
+    if (cs.display.includes("grid")) return visibleChildren(p).length > 1;
+    if (cs.display.includes("flex")) return visibleChildren(p).length > 2 || isPrimaryLayoutContainer(p);
+    return false;
+  }
+
+  function shouldIncludeHtml(el, ctx) {
+    if (ctx.text || ctx.locator || ctx.source || ctx.react || Object.keys(ctx.dataAttrs).length) return false;
+    if (el.children.length > 4) return false;
+    if (ctx.selector && !ctx.selector.includes("nth-of-type") && !ctx.selector.startsWith("body >")) return false;
+    return true;
+  }
+
+  function compactCssValue(value) {
+    if (!value) return "";
+    value = value.replace(/\s+/g, " ").trim();
+    return value.length > 80 ? value.slice(0, 80) + "\u2026" : value;
+  }
+
+  function unique(values) {
+    return Array.from(new Set(values));
   }
 
   // ── React debug info ───────────────────────────────────────
@@ -733,38 +838,259 @@
     } catch(_) { return {}; }
   }
 
-  function getReactPropsStr(el) {
+  function getReactPropsInfo(el) {
     try {
       const f = getReactFiber(el); if (!f) return null;
       const props = f.memoizedProps; if (!props || typeof props !== "object") return null;
       const entries = Object.entries(props).filter(([k]) => k !== "children" && !k.startsWith("__"));
-      if (!entries.length) return null;
-      return entries.slice(0, 10).map(([k, v]) => {
-        if (v === null || v === undefined) return `${k}:null`;
-        if (typeof v === "function") return `${k}:fn`;
-        if (typeof v === "object") { try { const s=JSON.stringify(v); return `${k}:${s.length > 60 ? s.slice(0, 60) + "\u2026" : s}`; } catch(_) { return `${k}:{...}`; } }
-        return `${k}:${v}`;
-      }).join(", ");
+      if (!entries.length) return { className: "", props: "" };
+      let className = "";
+      const useful = [];
+      entries.forEach(([k, v]) => {
+        if (k === "className" && typeof v === "string") { className = v; return; }
+        if (!isUsefulReactProp(k, v)) return;
+        if (v === null || v === undefined) { useful.push(`${k}:null`); return; }
+        if (typeof v === "function") { useful.push(`${k}:fn`); return; }
+        if (typeof v === "object") {
+          try {
+            const s=JSON.stringify(v);
+            useful.push(`${k}:${s.length > 60 ? s.slice(0, 60) + "\u2026" : s}`);
+          } catch(_) { useful.push(`${k}:{...}`); }
+          return;
+        }
+        useful.push(`${k}:${truncate(String(v), 80)}`);
+      });
+      return { className, props: useful.slice(0, 8).join(", ") };
     } catch(_) { return null; }
   }
 
+  function isUsefulReactProp(key, value) {
+    if (/^(id|role|type|name|href|to|for|htmlFor|target|rel|title|alt|placeholder|value|defaultValue)$/.test(key)) return value !== "";
+    if (/^(variant|size|tone|color|status|state|kind|intent|as|label)$/.test(key)) return true;
+    if (/^(disabled|selected|checked|open|active|expanded|pressed|required|readOnly)$/.test(key)) return true;
+    if (/^aria-/.test(key)) return true;
+    if (/^data-/.test(key)) return isUsefulDataValue(key, value);
+    return false;
+  }
+
+  function isUsefulDataAttr(attr) {
+    if (!attr || !attr.name || attr.name === AI_ID || !attr.name.startsWith("data-")) return false;
+    if (/^data-(test|testid|test-id|cy|qa|state|slot|value|name|variant|status|selected|disabled|orientation)$/.test(attr.name)) return true;
+    if (/^data-(pjax|turbo|hovercard|analytics|octo|view-component|hydrated|rr-ui|react)/.test(attr.name)) return false;
+    if (/^(true|false|0|1)$/.test(attr.value || "")) return false;
+    return attr.value && attr.value.length <= 80 && isStableToken(attr.value);
+  }
+
+  function isUsefulDataValue(key, value) {
+    if (/^data-(test|testid|test-id|cy|qa|state|slot|value|name|variant|status|selected|disabled|orientation)$/.test(key)) return true;
+    if (/^data-(pjax|turbo|hovercard|analytics|octo|view-component|hydrated|rr-ui|react)/.test(key)) return false;
+    if (value === true || value === false || value === 0 || value === 1) return false;
+    if (/^(true|false|0|1)$/.test(String(value))) return false;
+    return value !== null && value !== undefined && String(value).length <= 80 && isStableToken(String(value));
+  }
+
   // ── Element context ────────────────────────────────────────
-  function buildElementContext(el, index) {
+  function buildElementContext(el, index, note) {
     const dataAttrs = {};
-    for (const attr of Array.from(el.attributes).filter(attr => attr.name.startsWith("data-") && attr.name !== AI_ID).slice(0, 8)) {
-      if (attr.name.startsWith("data-") && attr.name !== AI_ID) dataAttrs[attr.name] = truncate(attr.value, 120);
+    for (const attr of Array.from(el.attributes).filter(isUsefulDataAttr).slice(0, 8)) {
+      dataAttrs[attr.name] = truncate(attr.value, 120);
     }
     const reactInfo = getReactDebug(el);
+    const reactProps = getReactPropsInfo(el) || { className: "", props: "" };
+    const classTokens = unique([
+      ...Array.from(el.classList),
+      ...String(reactProps.className || "").split(/\s+/).filter(Boolean),
+    ]);
+    const rawSelector = buildSelector(el);
+    const locator = buildLocator(el);
+    const text = readableText(el);
     const ctx = {
-      index, aiId: el.getAttribute(AI_ID), selector: buildSelector(el), locator: buildLocator(el), tag: el.tagName.toLowerCase(),
-      text: truncate(el.textContent, 80), classes: Array.from(el.classList),
-      outerHTML: settings.html ? truncateHtml(el.outerHTML, 500) : null,
-      dataAttrs, ...reactInfo,
+      index, aiId: el.getAttribute(AI_ID), locator, tag: el.tagName.toLowerCase(),
+      text: shouldIncludeText(text, locator) ? text : "", classes: classTokens,
+      dataAttrs, reactProps: reactProps.props, ...reactInfo,
     };
-    if (settings.styles) ctx.computed = getComputedStylesStr(el);
-    if (settings.parent) ctx.parent = getParentContextStr(el);
-    if (settings.react) ctx.reactProps = getReactPropsStr(el);
+    ctx.title = contextTitle(el, ctx);
+    ctx.inside = getSemanticContextStr(el);
+    ctx.visual = getVisualSummary(el, ctx, classTokens);
+    if (shouldIncludeSelector(rawSelector, ctx)) ctx.selector = rawSelector;
+    if (shouldIncludeLayout(el)) ctx.layout = getLayoutSummary(el);
+    if (shouldIncludeParent(el)) ctx.parent = getParentContextStr(el);
+    if (shouldIncludeHtml(el, ctx)) ctx.outerHTML = truncateHtml(el.outerHTML, 240);
     return ctx;
+  }
+
+  function contextTitle(el, ctx) {
+    const label = accessibleLabel(el);
+    const kind = elementKind(el, ctx);
+    return label ? `${kind} "${truncate(label, 48)}"` : kind;
+  }
+
+  function elementKind(el, ctx) {
+    const reactLast = ctx.react && ctx.react.split(" \u203a ").pop();
+    if (reactLast && /^[A-Z]/.test(reactLast)) return reactLast;
+    const role = explicitOrImplicitRole(el);
+    if (role) return role;
+    const tag = el.tagName.toLowerCase();
+    const classBlob = ctx.classes.join(" ").toLowerCase();
+    if (/badge|tag|chip|pill/.test(classBlob)) return "Badge";
+    if (/card|panel|tile/.test(classBlob)) return "Card";
+    if (/avatar/.test(classBlob)) return "Avatar";
+    if (/icon/.test(classBlob)) return "Icon";
+    return tag;
+  }
+
+  function readableText(el) {
+    return truncate(visibleText(el), 80);
+  }
+
+  function shouldIncludeText(text, locator) {
+    if (!text) return false;
+    if (!locator) return true;
+    return !locator.includes(`"${truncate(text, 48)}"`);
+  }
+
+  function shouldIncludeSelector(selector, ctx) {
+    if (!selector) return false;
+    const durableDirect = selector.length <= 120 && (/^#/.test(selector) || /^\[data-/.test(selector) || /^[a-z]+\[data-/.test(selector));
+    if (durableDirect) return true;
+    const hasStrongIdentity = ctx.locator || ctx.react || ctx.source || ctx.text || Object.keys(ctx.dataAttrs).length;
+    if (hasStrongIdentity) return false;
+    return selector.length <= 180;
+  }
+
+  function getSemanticContextStr(el) {
+    const parts = [];
+    const cell = el.closest("td,th");
+    if (cell) {
+      const header = tableHeaderForCell(cell);
+      parts.push(header ? `table cell under "${header}"` : "table cell");
+    }
+    const li = el.closest("li");
+    if (li) parts.push("list item");
+    const field = nearestFieldContext(el);
+    if (field) parts.push(field);
+    const region = nearestRegionContext(el);
+    if (region) parts.push(region);
+    return unique(parts).slice(0, 2).join("; ");
+  }
+
+  function tableHeaderForCell(cell) {
+    try {
+      if (cell.tagName.toLowerCase() !== "td") return null;
+      const table = cell.closest("table");
+      const row = cell.closest("tr");
+      if (!table || !row || cell.cellIndex < 0) return null;
+      const header = table.querySelector(`thead tr th:nth-child(${cell.cellIndex + 1})`);
+      return header ? truncate(header.textContent, 36) : null;
+    } catch(_) { return null; }
+  }
+
+  function nearestFieldContext(el) {
+    const label = el.closest("label");
+    if (label) return `field "${truncate(label.textContent, 36)}"`;
+    const form = el.closest("form");
+    if (form) return "form";
+    return null;
+  }
+
+  function nearestRegionContext(el) {
+    const region = el.closest("dialog,[role='dialog'],[role='menu'],[role='tablist'],nav,aside,header,footer,main,section,article");
+    if (!region || region === el) return null;
+    const role = explicitOrImplicitRole(region) || region.getAttribute("role") || region.tagName.toLowerCase();
+    const label = region.getAttribute("aria-label") || region.getAttribute("title") || nearestHeadingText(region);
+    return label ? `${role} "${truncate(label, 36)}"` : role;
+  }
+
+  function nearestHeadingText(region) {
+    const heading = region.querySelector("h1,h2,h3,h4,h5,h6");
+    return heading ? heading.textContent : "";
+  }
+
+  function getVisualSummary(el, ctx, classTokens) {
+    const parts = [];
+    const cs = getComputedStyle(el);
+    const classBlob = classTokens.join(" ");
+    const lower = classBlob.toLowerCase();
+    const kind = elementKind(el, ctx).toLowerCase();
+    const hasStyleTokens = hasVisualClassTokens(classTokens);
+    if (!hasStyleTokens && isAtomicElement(el) && kind !== "badge") return "";
+    if (/badge|tag|chip|pill/.test(lower) || kind === "badge") parts.push("badge");
+    if (/(rounded-full|pill)/.test(lower) || parseFloat(cs.borderRadius) >= Math.min(el.offsetHeight, el.offsetWidth) / 3) parts.push("pill");
+    else if ((cs.borderRadius && cs.borderRadius !== "0px") || /rounded/.test(lower)) parts.push("rounded");
+    if (hasBorder(cs) || /\bborder\b|border-/.test(lower)) parts.push("border");
+    if (hasBackground(cs) || /\bbg-/.test(lower)) parts.push(colorToken(lower, "bg") || "background");
+    if (hasForeground(cs) || /\btext-/.test(lower)) {
+      const textTone = textSizeToken(lower);
+      if (textTone) parts.push(textTone);
+      const color = colorToken(lower, "text");
+      if (color && color !== "text-xs" && color !== "text-sm" && color !== "text-lg" && color !== "text-xl") parts.push(color);
+    }
+    if (/shadow/.test(lower) || cs.boxShadow !== "none") parts.push("shadow");
+    return unique(parts).slice(0, 6).join(", ");
+  }
+
+  function hasVisualClassTokens(tokens) {
+    return tokens.some(token => /^(inline-flex|flex|grid|items-|justify-|gap-|rounded|border|bg-|text-|shadow|ring|opacity|px-|py-|p-|m-|badge|tag|chip|pill)/.test(token));
+  }
+
+  function colorToken(classBlob, prefix) {
+    const match = classBlob.match(new RegExp(`\\b${prefix}-([a-z][a-z0-9-]*(?:/[0-9]+)?)`));
+    if (prefix === "text" && match && /^(xs|sm|base|lg|xl|[2-9]xl)$/.test(match[1])) return "";
+    return match ? `${prefix}-${match[1]}` : "";
+  }
+
+  function textSizeToken(classBlob) {
+    if (/text-\[(?:9|10|11|12)px\]|text-xs/.test(classBlob)) return "tiny text";
+    if (/text-sm/.test(classBlob)) return "small text";
+    if (/text-lg|text-xl|text-2xl|text-3xl/.test(classBlob)) return "large text";
+    return "";
+  }
+
+  function hasBorder(cs) {
+    return ["Top","Right","Bottom","Left"].some(side => parseFloat(cs[`border${side}Width`]) > 0);
+  }
+
+  function hasBackground(cs) {
+    return cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent";
+  }
+
+  function hasForeground(cs) {
+    return cs.color && cs.color !== "rgba(0, 0, 0, 0)" && cs.color !== "transparent";
+  }
+
+  function visibleChildren(el) {
+    return Array.from(el.children).filter(isVisible);
+  }
+
+  function hasMeaningfulLayout(el, cs) {
+    return cs.display.includes("grid") || cs.display.includes("flex") || cs.position !== "static" || isScrollable(el);
+  }
+
+  function hasNonDefaultFlex(cs) {
+    return cs.flexDirection !== "row" || cs.alignItems !== "normal" || cs.justifyContent !== "normal" || (cs.gap && cs.gap !== "normal" && cs.gap !== "0px");
+  }
+
+  function isSimpleInlineLabel(el, cs) {
+    return cs.display.includes("flex") && visibleChildren(el).length <= 1 && readableText(el) && el.getBoundingClientRect().height <= 40;
+  }
+
+  function isScrollable(el) {
+    const cs = getComputedStyle(el);
+    return /(auto|scroll)/.test(`${cs.overflow} ${cs.overflowX} ${cs.overflowY}`);
+  }
+
+  function isPositioned(el) {
+    return getComputedStyle(el).position !== "static";
+  }
+
+  function isInsideStructuredContainer(el) {
+    return !!el.closest("td,th,li,label");
+  }
+
+  function isPrimaryLayoutContainer(el) {
+    const tag = el.tagName.toLowerCase();
+    if (/^(main|section|article|aside|nav|header|footer)$/.test(tag)) return true;
+    return /\b(container|layout|grid|row|toolbar|header|footer|sidebar|content)\b/i.test(Array.from(el.classList).join(" "));
   }
 
   function buildSelector(el) {
@@ -839,9 +1165,10 @@
 
   function isStableClass(cls) {
     if (!isStableToken(cls)) return false;
+    if (cls.includes(":")) return false;
     if (/^(sm|md|lg|xl|2xl|hover|focus|active|disabled):/.test(cls)) return false;
-    if (/^-?(m|p|w|h|min-w|max-w|min-h|max-h|text|bg|border|rounded|shadow|grid|flex|gap|space|items|justify|content|self|place|font|leading|tracking|opacity|z|top|right|bottom|left|inset|translate|scale|rotate)-/.test(cls)) return false;
-    if (/^(block|inline|flex|grid|hidden|relative|absolute|fixed|sticky|static|container)$/.test(cls)) return false;
+    if (/^(border|rounded|shadow|ring|flex|grid|block|inline|inline-flex|hidden|relative|absolute|fixed|sticky|static|container)$/.test(cls)) return false;
+    if (/^-?(m[trblxy]?|p[trblxy]?|w|h|min-w|max-w|min-h|max-h|text|bg|border|rounded|shadow|grid|flex|gap|space|items|justify|content|self|place|font|leading|tracking|opacity|z|top|right|bottom|left|inset|translate|scale|rotate)-/.test(cls)) return false;
     return true;
   }
 
@@ -887,8 +1214,12 @@
   function accessibleLabel(el) {
     const direct = el.getAttribute("aria-label") || el.getAttribute("title") || el.getAttribute("placeholder") || el.getAttribute("alt") || el.getAttribute("name");
     if (direct) return truncate(direct, 48);
-    const text = truncate(el.textContent, 48);
+    const text = truncate(visibleText(el), 48);
     return text || null;
+  }
+
+  function visibleText(el) {
+    return (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
   }
 
   function isUniqueSelector(selector) {

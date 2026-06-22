@@ -28,25 +28,23 @@ Open any web page, click the **Selector** bookmark.
 | **Space** | Pause / resume selecting |
 | **Esc** | Clear selection |
 
-The copied prompt includes lightweight element metadata (tag, stable selector, locator, text, React component info) plus any per-element instructions you added. Optional settings can add styles, HTML snippets, parent context, or React props when you need more detail.
+The copied prompt includes a compact, fact-based element summary: readable element name, stable locator, semantic location, React component info, and filtered props when available. Selector keeps long CSS selectors, layout, parent, or HTML context as fallbacks, and only includes them when the page structure makes that context useful.
 
 ## Example output
 
 ```
-Page: /dashboard
+Page: https://example.com/dashboard?tab=overview
 
-1. .hero-title <h1>
+1. Hero "Welcome to the Dashboard" <h1>
    selector: [data-testid="hero-title"]
    locator: heading "Welcome to the Dashboard"
    source: src/components/Hero.tsx:12
    react: Layout › Hero
-   text: "Welcome to the Dashboard"
    instruction: Make this red and larger
 
-2. .sidebar <nav>
-   selector: body > aside > nav
+2. nav "Home Settings Profile Logout" <nav>
    locator: nav "Home Settings Profile Logout"
-   text: "Home Settings Profile Logout"
+   inside: main "Dashboard"
    instruction: Add an "Analytics" link after "Settings"
 ```
 

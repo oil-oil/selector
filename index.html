@@ -18,6 +18,7 @@
        animation:pulse 2.4s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   .status{display:flex;align-items:center;margin-bottom:32px;font-size:11px;color:#404040;letter-spacing:.1em;text-transform:uppercase}
+  .version{margin-left:8px;color:#333;letter-spacing:0;text-transform:none}
   h1{font-size:20px;font-weight:500;color:#fff;margin-bottom:6px;letter-spacing:-.02em}
   .sub{font-size:12px;color:#505050;margin-bottom:44px;line-height:1.6}
   .steps{display:flex;flex-direction:column;gap:32px}
@@ -47,8 +48,12 @@
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  var version = "0.3.0";
   var base = location.href.replace(/[^/]*$/, "");
   var link = document.getElementById("bm-link");
+  document.querySelectorAll("[data-version]").forEach(function (el) {
+    el.textContent = "v" + version;
+  });
 
   Promise.all([
     fetch(base + "assets/editor.css").then(function (r) { return r.text(); }),
@@ -81,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </head>
 <body>
 <div class="wrap">
-  <div class="status"><span class="dot"></span>install</div>
+  <div class="status"><span class="dot"></span>install <span class="version" data-version></span></div>
   <h1>Selector</h1>
   <p class="sub">Point at any element. Tell your AI what to change.</p>
   <div class="steps">
@@ -113,7 +118,7 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
   </div>
   <div class="footer">
-    <a href="https://github.com/oil-oil/selector" target="_blank">GitHub</a>
+    <a href="https://github.com/oil-oil/selector" target="_blank">GitHub</a> · <span data-version></span>
   </div>
 </div>
 </body>
