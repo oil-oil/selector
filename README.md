@@ -23,11 +23,12 @@ Open any web page, click the **Selector** bookmark.
 | **← / →** | Navigate to previous / next sibling |
 | **✎ button** | Add per-element instruction |
 | **⌘C** | Copy prompt to clipboard |
+| **⌘⇧C** | Copy selected area screenshot |
 | **⌘Z** | Undo last selection change |
 | **Space** | Pause / resume selecting |
 | **Esc** | Clear selection |
 
-The copied prompt includes element metadata (tag, selector, text, React component info) plus any per-element instructions you added.
+The copied prompt includes lightweight element metadata (tag, stable selector, locator, text, React component info) plus any per-element instructions you added. Optional settings can add styles, HTML snippets, parent context, or React props when you need more detail.
 
 ## Example output
 
@@ -35,17 +36,17 @@ The copied prompt includes element metadata (tag, selector, text, React componen
 Page: /dashboard
 
 1. .hero-title <h1>
-   selector: body > main > section > h1
+   selector: [data-testid="hero-title"]
+   locator: heading "Welcome to the Dashboard"
    source: src/components/Hero.tsx:12
    react: Layout › Hero
    text: "Welcome to the Dashboard"
-   html: <h1 class="hero-title">Welcome to the Dashboard</h1>
    instruction: Make this red and larger
 
 2. .sidebar <nav>
    selector: body > aside > nav
+   locator: nav "Home Settings Profile Logout"
    text: "Home Settings Profile Logout"
-   html: <nav class="sidebar">…
    instruction: Add an "Analytics" link after "Settings"
 ```
 

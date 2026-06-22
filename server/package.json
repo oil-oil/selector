@@ -1,0 +1,15 @@
+{
+  "name": "selector-server",
+  "version": "1.0.0",
+  "description": "Local bridge server for Selector bookmarklet → Claude Code",
+  "main": "index.js",
+  "bin": {
+    "selector-server": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

@@ -381,7 +381,7 @@
 .ai-editor-copy-btn {
   display: block;
   width: calc(100% - 16px);
-  margin: 6px 8px 8px;
+  margin: 6px 8px 0;
   padding: 8px 0;
   border: none;
   border-radius: 8px;
@@ -417,6 +417,59 @@
   gap: 4px;
 }
 
+/* ── Copy Screenshot button ─────────────────────────────── */
+.ai-editor-screenshot-btn {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 6px 8px 8px;
+  padding: 8px 0;
+  border: 1.5px solid #111;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms, color 150ms;
+}
+
+.ai-editor-screenshot-btn:hover {
+  background: #f5f5f5;
+}
+
+.ai-editor-screenshot-btn:active {
+  transform: scale(0.97);
+}
+
+.ai-editor-screenshot-btn:disabled {
+  border-color: #e0e0e0;
+  color: #aaa;
+  cursor: default;
+  transform: none;
+}
+
+.ai-editor-screenshot-btn:disabled:hover {
+  background: #fff;
+}
+
+.ai-editor-screenshot-btn.ai-editor-screenshot-done {
+  border-color: #16a34a;
+  background: #16a34a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ai-editor-screenshot-btn.ai-editor-screenshot-error {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+
 /* ── Shortcuts hint ─────────────────────────────────────── */
 .ai-editor-shortcuts {
   display: flex;
@@ -444,4 +497,190 @@
   font-family: inherit;
   color: #666;
   line-height: 1.6;
+}
+
+
+/* ── Settings panel ──────────────────────────────────────── */
+.ai-editor-settings {
+  position: fixed;
+  z-index: 2147483647;
+  width: 280px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.03),
+    0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 16px 32px -4px rgba(0, 0, 0, 0.12);
+  padding: 4px 0;
+  animation: ai-editor-settings-in 160ms cubic-bezier(0.2, 0, 0.1, 1) forwards;
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+@keyframes ai-editor-settings-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ai-editor-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 2px;
+}
+
+.ai-editor-settings-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 0.02em;
+  flex: 1;
+}
+
+.ai-editor-settings-close {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: #bbb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 100ms, background 100ms;
+}
+
+.ai-editor-settings-close:hover {
+  color: #444;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ai-editor-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  gap: 10px;
+}
+
+.ai-editor-setting-row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.ai-editor-setting-group-title {
+  margin: 8px 12px 2px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  color: #aaa;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ai-editor-settings-header + .ai-editor-setting-group-title {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: none;
+}
+
+@keyframes ai-editor-setting-flash {
+  0%   { background: rgba(37, 99, 235, 0.12); }
+  100% { background: transparent; }
+}
+
+.ai-editor-setting-flash {
+  animation: ai-editor-setting-flash 600ms ease forwards;
+}
+
+.ai-editor-setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-editor-setting-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #222;
+}
+
+.ai-editor-setting-desc {
+  font-size: 10px;
+  color: #888;
+  line-height: 1.2;
+}
+
+/* ── Toggle switch ────────────────────────────────────────── */
+.ai-editor-toggle {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.ai-editor-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.ai-editor-toggle-slider {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #ddd;
+  border-radius: 17px;
+  transition: background 180ms;
+}
+
+.ai-editor-toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.ai-editor-toggle input:checked + .ai-editor-toggle-slider {
+  background: #111;
+}
+
+.ai-editor-toggle input:checked + .ai-editor-toggle-slider::before {
+  transform: translateX(13px);
+}
+
+/* ── Language button ──────────────────────────────────────── */
+.ai-editor-lang-btn {
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  background: #f8f8f8;
+  color: #444;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 100ms, border-color 100ms;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ai-editor-lang-btn:hover {
+  background: #eee;
+  border-color: #bbb;
 }
