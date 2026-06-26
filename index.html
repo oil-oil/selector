@@ -53,7 +53,7 @@
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  var version = "0.3.3";
+  var version = "0.3.6";
   var base = location.href.replace(/[^/]*$/, "");
   var link = document.getElementById("bm-link");
   var dict = {
@@ -122,10 +122,17 @@ document.addEventListener("DOMContentLoaded", function () {
   Promise.all([
     fetch(base + "assets/editor.css").then(function (r) { return r.text(); }),
     fetch(base + "assets/editor.js").then(function (r) { return r.text(); }),
+    fetch(base + "assets/sharingan.js").then(function (r) { return r.text(); }),
   ])
   .then(function (results) {
     var css = results[0];
     var js  = results[1];
+    var sharingan = results[2];
+
+    // sharingan.js is a fragment meant to be inlined into editor.js's IIFE.
+    // Strip its leading /** ... */ header block, then splice it into the marker.
+    var sharinganBody = sharingan.replace(/^\s*\/\*\*[\s\S]*?\*\/\s*/, "");
+    js = js.replace("/*__SHARINGAN_MODULE__*/", function () { return sharinganBody; });
 
     // Inject CSS via <style> element, but run JS directly in the
     // bookmarklet context — no <script> element needed.

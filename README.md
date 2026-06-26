@@ -32,6 +32,10 @@ Open any web page, click the **Selector** bookmark.
 The copied prompt includes a compact, fact-based element summary: readable element name, stable locator, semantic location, React component info, and filtered props when available. Selector keeps long CSS selectors, layout, parent, or HTML context as fallbacks, and only includes them when the page structure makes that context useful.
 Long page URLs are split into a route plus a compact query summary, so filter-heavy local pages stay readable.
 
+Enable **Sharingan mode** in settings when an element needs to be recreated with higher fidelity. In that mode, **⌘C** produces a Markdown replication report covering the document context (root CSS variables, viewport, theme), the element's identity and geometry, a sanitized DOM snapshot with same-origin images inlined as data URLs and referenced SVG sprite symbols folded in, an effective-style diff against the browser baseline (only non-default values), matched CSS rules split into normal / interactive (`:hover` / `:focus` / `:active`) / color-scheme (`prefers-color-scheme`) buckets, `@font-face` and `@keyframes` definitions for the fonts and animations the element actually uses, pseudo-elements, media assets, React fiber details, and surrounding context. Small reports are copied to the clipboard; large reports are downloaded as `.md` files automatically.
+
+When **Screenshot + text combined** is enabled, the main copy button and **⌘C** copy both the prompt text and selected-area screenshot together. Selector also downloads the screenshot as a PNG and appends a `~/Downloads/...png` reference to the prompt, which helps text-only AI inputs find the image.
+
 ## Example output
 
 ```
@@ -59,14 +63,18 @@ Query: date_from=2026-05-23, date_to=2026-06-22, creator_ids ×2
 
 ## How it works
 
-The bookmarklet injects `editor.css` + `editor.js` into the current page. Everything runs client-side — no data is sent anywhere. The code is bundled into the bookmark at install time, so it works offline after that.
+The bookmarklet injects `editor.css` + `editor.js` into the current page. Everything runs client-side — no data is sent anywhere. The install page concatenates `assets/editor.js` with `assets/sharingan.js` (spliced into a marker comment inside the editor IIFE) and bundles the result into the bookmark, so it works offline after that.
 
 ## Development
 
 ```bash
 git clone https://github.com/oil-oil/selector.git
 cd selector
-# Edit assets/editor.js and assets/editor.css
+# Source files:
+#   assets/editor.css     — styles for the in-page editor UI
+#   assets/editor.js      — core editor: selection, UI, copy/screenshot, prompt builder
+#   assets/sharingan.js   — Sharingan-mode replication report (inlined into editor.js
+#                           at the /*__SHARINGAN_MODULE__*/ marker by index.html)
 # Push to main — GitHub Pages auto-deploys
 ```
 

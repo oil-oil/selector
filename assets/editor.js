@@ -8,13 +8,13 @@
 
   const NS = "ai-editor";
   const AI_ID = "data-ai-id";
-  const VERSION = "0.3.3";
+  const VERSION = "0.3.6";
 
   // ── i18n ─────────────────────────────────────────────────────
   const DICT = {
     en: {
-      selecting:"Selecting", paused:"Paused", copyPrompt:"Copy Prompt", copyScreenshot:"Copy Screenshot",
-      copied:"Copied", screenshotCopied:"Screenshot Copied", screenshotFailed:"Screenshot Failed",
+      selecting:"Selecting", paused:"Paused", copyPrompt:"Copy Prompt", copyReport:"Amaterasu!", copyCombined:"Copy + Screenshot", copyScreenshot:"Copy Screenshot",
+      copied:"Copied", copiedSaved:"Copied + Saved", exported:"Markdown Exported", screenshotCopied:"Screenshot Copied", screenshotFailed:"Screenshot Failed",
       settings:"Settings", lang:"Language", addInstruction:"Add instruction",
       instrPlaceholder:"Instruction for this element\u2026", clear:"Clear", done:"Done",
       clearAll:"Clear all", minimize:"Minimize", restore:"Restore", close:"Close",
@@ -22,13 +22,15 @@
       skSelect:"Select", skMulti:"Multi", skNavigate:"Navigate", skPause:"Pause",
       skCopy:"Copy", skScreenshot:"Screenshot", skUndo:"Undo", skClear:"Clear",
       optCombined:"Screenshot + text combined", optCombinedDesc:"Copy screenshot and prompt text together",
+      optSharingan:"Sharingan mode", optSharinganDesc:"Copy a pixel-faithful clone report for AI — full DOM, hover/dark CSS, fonts, animations, and design tokens",
+      savePng:"Save PNG",
       errUnsupported:"Browser not supported", errCancelled:"Screen choice cancelled",
       errPermission:"Screen recording blocked", errClipboard:"Clipboard blocked",
       errCapture:"Screenshot failed", errEmpty:"Selected area is empty",
     },
     zh: {
-      selecting:"\u9009\u62e9\u4e2d", paused:"\u5df2\u6682\u505c", copyPrompt:"\u590d\u5236\u63d0\u793a\u8bcd", copyScreenshot:"\u590d\u5236\u622a\u56fe",
-      copied:"\u5df2\u590d\u5236", screenshotCopied:"\u622a\u56fe\u5df2\u590d\u5236", screenshotFailed:"\u622a\u56fe\u5931\u8d25",
+      selecting:"\u9009\u62e9\u4e2d", paused:"\u5df2\u6682\u505c", copyPrompt:"\u590d\u5236\u63d0\u793a\u8bcd", copyReport:"\u963f\u739b\u7279\u62c9\u65af\uff01", copyCombined:"\u590d\u5236\u56fe\u6587", copyScreenshot:"\u590d\u5236\u622a\u56fe",
+      copied:"\u5df2\u590d\u5236", copiedSaved:"\u5df2\u590d\u5236\u5e76\u4fdd\u5b58", exported:"Markdown \u5df2\u5bfc\u51fa", screenshotCopied:"\u622a\u56fe\u5df2\u590d\u5236", screenshotFailed:"\u622a\u56fe\u5931\u8d25",
       settings:"\u8bbe\u7f6e", lang:"\u8bed\u8a00", addInstruction:"\u6dfb\u52a0\u6307\u4ee4",
       instrPlaceholder:"\u6b64\u5143\u7d20\u7684\u4fee\u6539\u6307\u4ee4\u2026", clear:"\u6e05\u9664", done:"\u5b8c\u6210",
       clearAll:"\u6e05\u9664\u5168\u90e8", minimize:"\u6700\u5c0f\u5316", restore:"\u6062\u590d", close:"\u5173\u95ed",
@@ -36,6 +38,8 @@
       skSelect:"\u9009\u62e9", skMulti:"\u591a\u9009", skNavigate:"\u5bfc\u822a", skPause:"\u6682\u505c",
       skCopy:"\u590d\u5236", skScreenshot:"\u622a\u56fe", skUndo:"\u64a4\u9500", skClear:"\u6e05\u9664",
       optCombined:"\u622a\u56fe + \u6587\u672c\u5408\u5e76", optCombinedDesc:"\u540c\u65f6\u590d\u5236\u622a\u56fe\u548c\u63d0\u793a\u8bcd\u6587\u672c",
+      optSharingan:"\u5199\u8f6e\u773c\u6a21\u5f0f", optSharinganDesc:"\u590d\u5236\u4f9b AI \u50cf\u7d20\u7ea7\u590d\u523b\u7684\u62a5\u544a \u2014\u2014 \u5b8c\u6574 DOM\u3001hover/dark \u6837\u5f0f\u3001\u5b57\u4f53\u3001\u52a8\u753b\u4e0e\u8bbe\u8ba1 token",
+      savePng:"\u4fdd\u5b58 PNG",
       errUnsupported:"\u6d4f\u89c8\u5668\u4e0d\u652f\u6301", errCancelled:"\u5df2\u53d6\u6d88\u5c4f\u5e55\u9009\u62e9",
       errPermission:"\u5c4f\u5e55\u5f55\u5236\u6743\u9650\u53d7\u9650", errClipboard:"\u526a\u8d34\u677f\u6743\u9650\u53d7\u9650",
       errCapture:"\u622a\u56fe\u5931\u8d25", errEmpty:"\u9009\u4e2d\u533a\u57df\u65e0\u6cd5\u622a\u56fe",
@@ -46,7 +50,13 @@
   function t(k) { return (DICT[lang] && DICT[lang][k]) || DICT.en[k] || k; }
 
   // ── Settings ─────────────────────────────────────────────────
-  const DEFAULTS = { combined:false };
+  const DEFAULTS = { combined:false, sharingan:false };
+  // Reports up to this size go straight to the clipboard. Past this — and only
+  // past it — we fall back to downloading the full report as a .md file so we
+  // don't choke the OS clipboard. The previous floor (30_000) silently
+  // downgraded every modern report to the short prompt-text fallback even
+  // though browsers handle MB-class clipboard text fine.
+  const SHARINGAN_CLIPBOARD_CHAR_LIMIT = 500000;
   let settings = Object.assign({}, DEFAULTS);
   try { var s = JSON.parse(localStorage.getItem(NS + "-settings")); if (s) settings = Object.assign({}, DEFAULTS, s); } catch(_) {}
   function saveSettings() { try { localStorage.setItem(NS + "-settings", JSON.stringify(settings)); } catch(_) {} }
@@ -57,7 +67,7 @@
   const selOverlays = new Map(), annotations = new Map(), listeners = [];
   let dragState = null, wasJustDragging = false, activePopover = null;
   const selectionHistory = [];
-  let screenshotBtn = null, settingsOpen = false, settingsPanel = null;
+  let screenshotBtn = null, saveBtn = null, pendingScreenshotSave = null, settingsOpen = false, settingsPanel = null;
 
   function on(target, type, fn, capture) {
     target.addEventListener(type, fn, capture);
@@ -304,20 +314,26 @@
   // ── Settings panel ──────────────────────────────────────────
   const GEAR_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
   const CAMERA_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+  const SHARINGAN_ICON_SRC = "data:image/png;base64,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";
+  const SHARINGAN_ICON = `<img class="${NS}-sharingan-icon" src="${SHARINGAN_ICON_SRC}" alt="" aria-hidden="true">`;
 
   function mkToggle(key) {
     const row = document.createElement("div"); row.className = `${NS}-setting-row`;
     row.dataset.settingKey = key;
     const info = document.createElement("div"); info.className = `${NS}-setting-info`;
+    const labelLine = document.createElement("span"); labelLine.className = `${NS}-setting-label-line`;
+    if (key === "sharingan") labelLine.innerHTML = SHARINGAN_ICON;
     const lbl = document.createElement("span"); lbl.className = `${NS}-setting-label`; lbl.textContent = t("opt" + key[0].toUpperCase() + key.slice(1));
+    labelLine.appendChild(lbl);
     const desc = document.createElement("span"); desc.className = `${NS}-setting-desc`; desc.textContent = t("opt" + key[0].toUpperCase() + key.slice(1) + "Desc");
-    info.appendChild(lbl); info.appendChild(desc);
+    info.appendChild(labelLine); info.appendChild(desc);
     const toggle = document.createElement("label"); toggle.className = `${NS}-toggle`;
     const input = document.createElement("input"); input.type = "checkbox"; input.checked = !!settings[key];
     const slider = document.createElement("span"); slider.className = `${NS}-toggle-slider`;
     toggle.appendChild(input); toggle.appendChild(slider);
     input.onchange = () => {
       settings[key] = input.checked; saveSettings();
+      applyI18n();
       // Visual feedback: flash the row
       row.classList.remove(`${NS}-setting-flash`);
       void row.offsetWidth; // force reflow to restart animation
@@ -358,6 +374,7 @@
     settingsPanel.appendChild(mkSettingGroup("general"));
     settingsPanel.appendChild(langWrap);
     settingsPanel.appendChild(mkToggle("combined"));
+    settingsPanel.appendChild(mkToggle("sharingan"));
     document.body.appendChild(settingsPanel);
     const cr = chatPanel.getBoundingClientRect();
     settingsPanel.style.bottom = (window.innerHeight - cr.top + 4) + "px";
@@ -397,9 +414,10 @@
     const sl = chatPanel.querySelector(`.${NS}-status-label`);
     if (sl) sl.textContent = paused ? t("paused") : t("selecting");
     const cb = chatPanel.querySelector(`.${NS}-copy-btn`);
-    if (cb && !cb.classList.contains(`${NS}-copy-done`)) cb.textContent = t("copyPrompt");
+    if (cb && !cb.classList.contains(`${NS}-copy-done`)) setCopyButtonIdle(cb);
     if (screenshotBtn && !screenshotBtn.classList.contains(`${NS}-screenshot-done`) && !screenshotBtn.classList.contains(`${NS}-screenshot-error`))
       setScreenshotButtonIdle();
+    if (saveBtn) saveBtn.textContent = t("savePng");
     const minBtn = chatPanel.querySelector('[data-action="minimize"]');
     if (minBtn) minBtn.title = minimized ? t("restore") : t("minimize");
     const closeBtn = chatPanel.querySelector('[data-action="close"]');
@@ -407,6 +425,16 @@
     const settingsBtnEl = chatPanel.querySelector('[data-action="settings"]');
     if (settingsBtnEl) settingsBtnEl.title = t("settings");
     updateShortcuts();
+  }
+
+  function copyButtonLabel() {
+    if (settings.sharingan) return t("copyReport");
+    if (settings.combined) return t("copyCombined");
+    return t("copyPrompt");
+  }
+
+  function setCopyButtonIdle(btn) {
+    btn.innerHTML = settings.sharingan ? `${SHARINGAN_ICON}<span>${copyButtonLabel()}</span>` : copyButtonLabel();
   }
 
   function updateShortcuts() {
@@ -447,12 +475,15 @@
         <div class="${NS}-action-row">
           <button class="${NS}-copy-btn" disabled>Copy Prompt</button>
           <button class="${NS}-screenshot-btn" disabled title="Copy Screenshot" aria-label="Copy Screenshot">${CAMERA_SVG}</button>
+          <button class="${NS}-save-btn ${NS}-hidden" type="button">Save PNG</button>
         </div>
       </div>`;
     document.body.appendChild(chatPanel);
     chatPanel.querySelector(`.${NS}-copy-btn`).onclick = () => copyPrompt();
     screenshotBtn = chatPanel.querySelector(`.${NS}-screenshot-btn`);
     screenshotBtn.onclick = () => captureScreenshot();
+    saveBtn = chatPanel.querySelector(`.${NS}-save-btn`);
+    saveBtn.onclick = () => savePendingScreenshot();
     chatPanel.querySelector('[data-action="settings"]').onclick = toggleSettings;
     chatPanel.querySelector('[data-action="minimize"]').onclick = toggleMinimize;
     chatPanel.querySelector('[data-action="close"]').onclick = destroy;
@@ -520,15 +551,45 @@
 
   // ── Copy feedback ───────────────────────────────────────────
   let copyTimer=null;
-  function showCopyFeedback(msg) {
+  function showCopyFeedback(msg, isError, detail) {
     const btn=chatPanel.querySelector(`.${NS}-copy-btn`);
     if (copyTimer) clearTimeout(copyTimer);
+    btn.classList.remove(`${NS}-copy-error`);
     btn.classList.add(`${NS}-copy-done`);
-    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${msg}`;
-    copyTimer = setTimeout(() => { btn.classList.remove(`${NS}-copy-done`); btn.textContent = t("copyPrompt"); copyTimer = null; }, 2000);
+    if (isError) btn.classList.add(`${NS}-copy-error`);
+    btn.title = detail || msg;
+    btn.innerHTML = settings.sharingan
+      ? `${SHARINGAN_ICON}<span>${msg}</span>`
+      : `${isError ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'} ${msg}`;
+    copyTimer = setTimeout(() => { btn.classList.remove(`${NS}-copy-done`, `${NS}-copy-error`); btn.title = ""; setCopyButtonIdle(btn); copyTimer = null; }, 2000);
+  }
+  function showCopyCaptureError(code, err) {
+    const key = screenshotErrorKey(code);
+    const detail = err ? `${err.name || "Error"}: ${err.message || String(err)}` : "";
+    if (err) console.warn(`[Selector] ${t(key)}`, err);
+    showCopyFeedback(t(key), true, detail);
   }
   function copyPrompt() {
-    const text = buildPromptText(); if (!text) return;
+    const text = settings.sharingan ? buildSharinganReport() : buildPromptText(); if (!text) return;
+    if (settings.combined) {
+      if (settings.sharingan && text.length > SHARINGAN_CLIPBOARD_CHAR_LIMIT) {
+        const filename = sharinganFilename();
+        downloadMarkdown(text, filename);
+        const promptText = appendSharinganDownloadReference(buildPromptText(), filename, text.length);
+        captureScreenshot({ text: promptText, feedbackTarget: "copy", downloadImage: true });
+        return;
+      }
+      captureScreenshot({ text, feedbackTarget: "copy", downloadImage: true });
+      return;
+    }
+    if (settings.sharingan && text.length > SHARINGAN_CLIPBOARD_CHAR_LIMIT) {
+      const filename = sharinganFilename();
+      downloadMarkdown(text, filename);
+      const fallback = appendSharinganDownloadReference(buildPromptText(), filename, text.length);
+      writeToClipboard(fallback);
+      showCopyFeedback(t("exported"));
+      return;
+    }
     writeToClipboard(text); showCopyFeedback(t("copied"));
   }
 
@@ -554,46 +615,162 @@
     screenshotTimer = setTimeout(() => { btn.classList.remove(`${NS}-screenshot-done`, `${NS}-screenshot-error`); setScreenshotButtonIdle(); screenshotTimer = null; }, 2400);
   }
 
-  async function captureScreenshot() {
+  async function captureScreenshot(options) {
     if (selectedElements.length === 0) return;
-    if (!navigator.clipboard || !window.ClipboardItem || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      showScreenshotError("unsupported");
+    const opts = options || {};
+    const feedbackTarget = opts.feedbackTarget || "screenshot";
+    const showError = (code, err) => feedbackTarget === "copy" ? showCopyCaptureError(code, err) : showScreenshotError(code, err);
+    const showSuccess = (savedImage) => feedbackTarget === "copy" ? showCopyFeedback(opts.downloadImage && savedImage ? t("copiedSaved") : t("copied")) : showScreenshotFeedback(t("screenshotCopied"));
+    if (!navigator.clipboard || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      showError("unsupported");
       return;
     }
 
-    const image = defer();
-    let itemData = { "image/png": image.promise };
-    if (settings.combined) {
-      const text = buildPromptText();
-      if (text) {
-        itemData = {
-          "text/html": image.promise.then(blob => screenshotHtmlBlob(text, blob)),
-          "text/plain": new Blob([text], { type: "text/plain" }),
-          "image/png": image.promise,
-        };
+    const imageFilename = opts.downloadImage ? screenshotFilename() : "";
+    let imageBlob;
+    try {
+      imageBlob = await captureScreenshotBlob();
+    } catch (err) {
+      showError(classifyScreenshotError(err, "capture"), err);
+      return;
+    }
+
+    let imageSaved = false;
+    let savedFilename = imageFilename;
+    if (imageFilename) {
+      try {
+        const saveResult = await saveScreenshotImage(imageBlob, imageFilename);
+        imageSaved = saveResult.saved;
+        savedFilename = saveResult.filename || imageFilename;
+      } catch (err) {
+        showError(classifyScreenshotError(err, "capture"), err);
+        return;
       }
     }
 
-    let writePromise;
-    try {
-      writePromise = navigator.clipboard.write([new ClipboardItem(itemData)]);
-    } catch (err) {
-      showScreenshotError("clipboard", err);
-      return;
-    }
+    const text = Object.prototype.hasOwnProperty.call(opts, "text") ? opts.text : (settings.combined ? buildPromptText() : "");
+    const textWithImagePath = imageFilename ? appendScreenshotSaveReference(text, savedFilename, imageSaved) : text;
 
-    let captureError = null;
-    captureScreenshotBlob().then(image.resolve, err => { captureError = err; image.reject(err); });
     try {
-      await writePromise;
-      showScreenshotFeedback(t("screenshotCopied"));
+      if (imageFilename && textWithImagePath) {
+        await navigator.clipboard.writeText(textWithImagePath);
+      } else {
+        if (!window.ClipboardItem) {
+          showError("unsupported");
+          return;
+        }
+        let itemData = { "image/png": imageBlob };
+        if (textWithImagePath) {
+          itemData = {
+            "text/html": screenshotHtmlBlob(textWithImagePath, imageBlob),
+            "text/plain": new Blob([textWithImagePath], { type: "text/plain" }),
+            "image/png": imageBlob,
+          };
+        }
+        await navigator.clipboard.write([new ClipboardItem(itemData)]);
+      }
+      showSuccess(imageSaved);
     } catch (err) {
-      showScreenshotError(classifyScreenshotError(captureError || err, captureError ? "capture" : "clipboard"), captureError || err);
+      showError("clipboard", err);
     }
   }
 
-  function showScreenshotError(code, err) {
-    const key = {
+  async function saveScreenshotImage(blob, filename) {
+    try {
+      const result = await writeScreenshotWithPicker(blob, filename);
+      clearPendingScreenshotSave();
+      return result;
+    } catch (err) {
+      if (err && err.name === "AbortError") throw screenshotError("cancelled", err);
+      console.warn("[Selector] Save picker unavailable", err);
+    }
+
+    showPendingScreenshotSave(blob, filename);
+    return { saved: false, filename };
+  }
+
+  // When the Sharingan report exceeds the clipboard threshold we auto-download
+  // it as a .md file and put only the short prompt summary in the clipboard.
+  // Without an explicit note the receiving AI has no way to know the rich
+  // report exists. This banner runs FIRST in the clipboard text so any AI
+  // sees it before the abbreviated prompt body.
+  function appendSharinganDownloadReference(text, filename, fullChars) {
+    const ref = [
+      `Sharingan replication report: ${filename}  (${(fullChars / 1024).toFixed(1)} KB)`,
+      `The full DOM/CSS/font/animation report was downloaded as a Markdown file (it exceeded the clipboard size limit). The prompt body below is only an abbreviated summary — for high-fidelity replication, read the .md file.`,
+      `To locate the absolute path, run one of:`,
+      `  mdfind -name "${filename}"                              # macOS`,
+      `  find ~ -name "${filename}" -mtime -1                   # Linux / WSL`,
+    ].join("\n");
+    return text ? `${ref}\n\n${text}` : ref;
+  }
+
+  // The browser does not expose the absolute path the user picked in the save
+  // dialog (sandbox), so we hand the receiving AI a concrete locator command
+  // it can run instead. The filename is timestamp-unique so a system-wide
+  // search returns exactly one hit.
+  function appendScreenshotSaveReference(text, filename, saved) {
+    const lines = saved
+      ? [
+          `Screenshot file: ${filename}`,
+          `The user saved this PNG via the browser save dialog (path not exposed by the browser).`,
+          `To locate the absolute path, run one of:`,
+          `  mdfind -name "${filename}"                              # macOS`,
+          `  find ~ -name "${filename}" -mtime -1                   # Linux / WSL`,
+        ]
+      : [
+          `Screenshot file: ${filename}  (capture pending)`,
+          `Auto-save did not run — ask the user to click "Save PNG" in the Selector panel and pick a folder.`,
+          `After saving, locate it with:`,
+          `  mdfind -name "${filename}"                              # macOS`,
+          `  find ~ -name "${filename}" -mtime -1                   # Linux / WSL`,
+        ];
+    const ref = lines.join("\n");
+    return text ? `${text}\n\n${ref}` : ref;
+  }
+
+  async function writeScreenshotWithPicker(blob, filename) {
+    if (!window.showSaveFilePicker || !window.isSecureContext) throw new Error("File picker unavailable");
+    const handle = await window.showSaveFilePicker({
+      suggestedName: filename,
+      types: [{ description: "PNG image", accept: { "image/png": [".png"] } }],
+      excludeAcceptAllOption: false,
+    });
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    return { saved: true, filename: handle.name || filename };
+  }
+
+  function showPendingScreenshotSave(blob, filename) {
+    pendingScreenshotSave = { blob, filename };
+    if (!saveBtn) return;
+    saveBtn.textContent = t("savePng");
+    saveBtn.classList.remove(`${NS}-hidden`);
+  }
+
+  function clearPendingScreenshotSave() {
+    pendingScreenshotSave = null;
+    if (saveBtn) saveBtn.classList.add(`${NS}-hidden`);
+  }
+
+  async function savePendingScreenshot() {
+    if (!pendingScreenshotSave) return;
+    const pending = pendingScreenshotSave;
+    saveBtn.disabled = true;
+    try {
+      await writeScreenshotWithPicker(pending.blob, pending.filename);
+      clearPendingScreenshotSave();
+      showCopyFeedback(t("copiedSaved"));
+    } catch (err) {
+      if (err && err.name !== "AbortError") showCopyCaptureError("capture", err);
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  }
+
+  function screenshotErrorKey(code) {
+    return {
       unsupported: "errUnsupported",
       cancelled: "errCancelled",
       permission: "errPermission",
@@ -601,6 +778,10 @@
       empty: "errEmpty",
       capture: "errCapture",
     }[code] || "errCapture";
+  }
+
+  function showScreenshotError(code, err) {
+    const key = screenshotErrorKey(code);
     const detail = err ? `${err.name || "Error"}: ${err.message || String(err)}` : "";
     if (err) console.warn(`[Selector] ${t(key)}`, err);
     showScreenshotFeedback(t(key), true, detail);
@@ -785,6 +966,7 @@
     return lines.join("\n");
   }
 
+  /*__SHARINGAN_MODULE__*/
   // ── Computed styles ────────────────────────────────────────
   const LAYOUT_STYLE_KEYS = ["display","flex-direction","align-items","justify-content","gap","grid-template-columns","padding","margin","width","height","position","z-index","overflow","text-align"];
   function getLayoutSummary(el) {

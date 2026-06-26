@@ -432,6 +432,17 @@
   gap: 4px;
 }
 
+.ai-editor-copy-btn.ai-editor-copy-error {
+  background: #dc2626;
+}
+
+.ai-editor-copy-btn .ai-editor-sharingan-icon {
+  width: 15px;
+  height: 15px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
 /* ── Copy Screenshot button ─────────────────────────────── */
 .ai-editor-screenshot-btn {
   flex: 0 0 40px;
@@ -486,6 +497,45 @@
   color: #fff;
 }
 
+.ai-editor-save-btn {
+  flex: 0 0 auto;
+  min-width: 84px;
+  min-height: 36px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, transform 100ms, color 150ms;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.ai-editor-save-btn:hover {
+  border-color: #bbb;
+  background: #fff;
+  color: #111;
+}
+
+.ai-editor-save-btn:active {
+  transform: scale(0.98);
+}
+
+.ai-editor-save-btn:disabled {
+  color: #aaa;
+  cursor: default;
+  transform: none;
+}
+
+.ai-editor-save-btn.ai-editor-hidden {
+  display: none;
+}
 
 /* ── Shortcuts hint ─────────────────────────────────────── */
 .ai-editor-shortcuts {
@@ -624,10 +674,23 @@
   min-width: 0;
 }
 
+.ai-editor-setting-label-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
 .ai-editor-setting-label {
   font-size: 11px;
   font-weight: 500;
   color: #222;
+}
+
+.ai-editor-setting-label-line .ai-editor-sharingan-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .ai-editor-setting-desc {
