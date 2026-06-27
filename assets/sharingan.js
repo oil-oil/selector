@@ -39,10 +39,13 @@
         const aiId = el.getAttribute(AI_ID);
         const note = annotations.get(aiId);
         const ctx = buildElementContext(el, i + 1, note);
+        const replicaRoot = getReplicaRoot(el);
         lines.push(`## Element ${i + 1}: ${ctx.title} <${ctx.tag}>`, "");
         if (note) appendMarkdownSection(lines, "Instruction", note);
         appendMarkdownSection(lines, "Identity", codeBlock(getIdentityReport(el, ctx), "text"));
         appendMarkdownSection(lines, "Geometry", codeBlock(getGeometryReport(el), "text"));
+        const rootReport = getReplicaRootReport(el, replicaRoot);
+        if (rootReport) appendMarkdownSection(lines, "Replica Root", codeBlock(rootReport, "text"));
         appendMarkdownSection(lines, "DOM Snapshot", codeBlock(sanitizedOuterHtml(el), "html"));
         const sprite = getSvgSpriteReport(el);
         if (sprite) appendMarkdownSection(lines, "Referenced SVG Symbols", codeBlock(sprite, "html"));
@@ -55,6 +58,8 @@
         appendMarkdownSection(lines, "Effective Style", codeBlock(getComputedStyleReport(el), "css"));
         const vars = getCssVariablesReport(el);
         if (vars && vars !== "none") appendMarkdownSection(lines, "CSS Custom Properties", codeBlock(vars, "css"));
+        const stylePack = getReplicaStylePackReport(replicaRoot, el);
+        if (stylePack) appendMarkdownSection(lines, "Replica Style Pack", codeBlock(stylePack, "text"));
         const normal = getMatchedCssRulesReport(el);
         if (normal) appendMarkdownSection(lines, "Matched Rules", codeBlock(normal, "css"));
         const interactive = getInteractiveStatesReport(el);
@@ -65,9 +70,13 @@
         if (ancestors) appendMarkdownSection(lines, "Ancestor Chain", codeBlock(ancestors, "text"));
         const pseudo = getPseudoElementsReport(el);
         if (pseudo) appendMarkdownSection(lines, "Pseudo Elements", codeBlock(pseudo, "css"));
-        const fonts = getFontFacesReport(el);
+        const fontUsage = getFontUsageReport(replicaRoot, el);
+        if (fontUsage) appendMarkdownSection(lines, "Font Usage", codeBlock(fontUsage, "text"));
+        const fonts = getFontFacesReport(replicaRoot || el);
         if (fonts) appendMarkdownSection(lines, "Font Faces", codeBlock(fonts, "css"));
-        const keyframes = getKeyframesReport(el);
+        const animationRuntime = getAnimationRuntimeReport(replicaRoot || el, el);
+        if (animationRuntime) appendMarkdownSection(lines, "Animation Runtime", codeBlock(animationRuntime, "text"));
+        const keyframes = getKeyframesReport(replicaRoot || el);
         if (keyframes) appendMarkdownSection(lines, "Keyframes", codeBlock(keyframes, "css"));
         const media = getMediaAssetsReport(el);
         if (media) appendMarkdownSection(lines, "Media Assets", codeBlock(media, "text"));
@@ -163,6 +172,68 @@
     const box = `offset=${el.offsetWidth || 0}x${el.offsetHeight || 0} client=${el.clientWidth || 0}x${el.clientHeight || 0} scroll=${el.scrollWidth || 0}x${el.scrollHeight || 0}`;
     if (box !== "offset=0x0 client=0x0 scroll=0x0") rows.push(`box: ${box}`);
     return rows.join("\n");
+  }
+
+  // Replica Root — the selected element is often only a rendering layer
+  // (for example an SVG wire layer). For faithful reconstruction we also name
+  // the nearest visual module root that owns the surrounding siblings.
+  const REPLICA_ROOT_CLASS_HINT = /(stage|scene|diagram|canvas|module|widget|panel|card|hero|section|shell|surface|frame|board|graph|chart|flow|timeline|workspace|viewport)/i;
+  const REPLICA_ROOT_TAGS = new Set(["section","article","main","aside","nav","header","footer","figure"]);
+
+  function getReplicaRoot(el) {
+    if (!el || !el.parentElement) return el;
+    const selected = safeRect(el);
+    let node = el.parentElement;
+    let best = node;
+    let depth = 0;
+    while (node && node !== document.body && node !== document.documentElement && depth++ < 12) {
+      if (isEditorElement(node)) { node = node.parentElement; continue; }
+      const rect = safeRect(node);
+      if (rect.width < 16 || rect.height < 16) { node = node.parentElement; continue; }
+      const signal = replicaRootSignal(node);
+      const surroundsSelected = rect.width >= selected.width && rect.height >= selected.height;
+      if (signal && surroundsSelected) {
+        best = node;
+        if (/stage|scene|diagram|canvas|widget|module|flow|chart|graph/i.test(signal)) return node;
+      }
+      node = node.parentElement;
+    }
+    return best || el;
+  }
+
+  function replicaRootSignal(node) {
+    const tag = (node.tagName || "").toLowerCase();
+    const cls = Array.from(node.classList || []).join(" ");
+    const id = node.id || "";
+    const role = node.getAttribute && (node.getAttribute("role") || "");
+    const data = node.getAttribute && (node.getAttribute("data-node") || node.getAttribute("data-section") || "");
+    const haystack = `${tag} ${id} ${cls} ${role} ${data}`;
+    const hinted = haystack.match(REPLICA_ROOT_CLASS_HINT);
+    if (hinted) return hinted[0];
+    if (REPLICA_ROOT_TAGS.has(tag)) return tag;
+    const children = Array.from(node.children || []).filter(child => !isEditorElement(child));
+    if (children.length >= 3) return "multi-child-container";
+    return "";
+  }
+
+  function getReplicaRootReport(el, root) {
+    if (!root || root === el) return "";
+    const rr = safeRect(root);
+    const er = safeRect(el);
+    const children = Array.from(root.children || []).filter(child => !isEditorElement(child));
+    return [
+      `root: ${describeElement(root)}`,
+      `reason: nearest visual module/container around selected element`,
+      `root viewport: x=${round2(rr.x)} y=${round2(rr.y)} w=${round2(rr.width)} h=${round2(rr.height)}`,
+      `selected within root: x=${round2(er.x - rr.x)} y=${round2(er.y - rr.y)} w=${round2(er.width)} h=${round2(er.height)}`,
+      children.length ? `direct children: ${children.length}` : "",
+      `relation: ${root === el.parentElement ? "selected element is a direct child of this root" : "selected element is nested inside this root"}`,
+    ].filter(Boolean).join("\n");
+  }
+
+  function safeRect(el) {
+    try { return el.getBoundingClientRect(); }
+    catch (_) { return { x: 0, y: 0, left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 }; }
   }
 
   function sanitizedOuterHtml(el) {
@@ -533,6 +604,170 @@
     return sections.join("\n\n") || "matches page defaults";
   }
 
+  const REPLICA_STYLE_MAX_GROUPS = 32;
+  const REPLICA_STYLE_MAX_VARIANTS = 8;
+  const REPLICA_STYLE_PROPS = [
+    "display","position","top","right","bottom","left","z-index",
+    "width","height","min-width","min-height","padding-top","padding-right","padding-bottom","padding-left",
+    "margin-top","margin-right","margin-bottom","margin-left","overflow","overflow-x","overflow-y",
+    "flex-direction","align-items","justify-content","gap","grid-template-columns","grid-template-rows",
+    "font-family","font-size","font-weight","font-style","line-height","letter-spacing","text-align","text-transform","white-space",
+    "color","background-color","background-image","fill","stroke","stroke-width","opacity",
+    "border-top-width","border-right-width","border-bottom-width","border-left-width","border-top-color","border-right-color","border-bottom-color","border-left-color","border-radius",
+    "box-shadow","text-shadow","filter","backdrop-filter","clip-path","mask-image",
+    "transform","transform-origin","transition-property","transition-duration","transition-timing-function","transition-delay",
+    "animation-name","animation-duration","animation-timing-function","animation-delay","animation-fill-mode","animation-play-state",
+  ];
+
+  function getReplicaStylePackReport(root, selected) {
+    if (!root || !root.querySelectorAll) return "";
+    const groups = collectReplicaStyleGroups(root, selected);
+    if (!groups.length) return "";
+    const rows = [
+      `scope: ${describeElement(root)}`,
+      `strategy: one computed-style sample per repeated selector signature; repeated instances are listed as variants`,
+      "",
+    ];
+    groups.slice(0, REPLICA_STYLE_MAX_GROUPS).forEach((group, idx) => {
+      rows.push(`[${idx + 1}] ${group.key}  (${group.items.length} instance${group.items.length > 1 ? "s" : ""})`);
+      rows.push(`sample: ${describeElement(group.sample)} rect=${rectSize(group.sample)}${visibleSnippet(group.sample)}`);
+      const variants = group.items.slice(0, REPLICA_STYLE_MAX_VARIANTS).map(item => `  - ${variantLine(item)}`);
+      if (variants.length) rows.push("variants:", ...variants);
+      if (group.items.length > REPLICA_STYLE_MAX_VARIANTS) {
+        rows.push(`  - ${group.items.length - REPLICA_STYLE_MAX_VARIANTS} more similar variant${group.items.length - REPLICA_STYLE_MAX_VARIANTS > 1 ? "s" : ""} folded`);
+      }
+      const style = getReplicaStyleSubset(group.sample);
+      if (style) rows.push("style:", style);
+      rows.push("");
+    });
+    if (groups.length > REPLICA_STYLE_MAX_GROUPS) {
+      rows.push(`${groups.length - REPLICA_STYLE_MAX_GROUPS} low-signal style group${groups.length - REPLICA_STYLE_MAX_GROUPS > 1 ? "s" : ""} not sampled; DOM Snapshot still contains them.`);
+    }
+    return rows.join("\n").trim();
+  }
+
+  function collectReplicaStyleGroups(root, selected) {
+    const nodes = collectReplicaStyleNodes(root, selected);
+    const map = new Map();
+    nodes.forEach(node => {
+      const key = replicaStyleKey(node);
+      if (!key) return;
+      if (!map.has(key)) map.set(key, { key, sample: node, items: [], score: 0 });
+      const group = map.get(key);
+      group.items.push(node);
+      group.score = Math.max(group.score, replicaNodeScore(node, root, selected));
+      if (replicaNodeScore(node, root, selected) > replicaNodeScore(group.sample, root, selected)) group.sample = node;
+    });
+    return Array.from(map.values()).sort((a, b) => b.score - a.score || b.items.length - a.items.length || a.key.localeCompare(b.key));
+  }
+
+  function collectReplicaStyleNodes(root, selected) {
+    const out = [];
+    const seen = new Set();
+    const push = (node) => {
+      if (!node || node.nodeType !== 1 || isEditorElement(node)) return;
+      if (seen.has(node)) return;
+      const r = safeRect(node);
+      if (r.width <= 0 && r.height <= 0) return;
+      seen.add(node);
+      out.push(node);
+    };
+    push(root);
+    push(selected);
+    Array.from(root.children || []).forEach(push);
+    Array.from(root.querySelectorAll("*")).forEach(node => {
+      if (out.length > 650) return;
+      if (!isReplicaStyleSampleCandidate(node, root, selected)) return;
+      push(node);
+    });
+    return out;
+  }
+
+  function isReplicaStyleSampleCandidate(node, root, selected) {
+    if (node === root || node === selected) return true;
+    const tag = (node.tagName || "").toLowerCase();
+    const cls = node.classList && node.classList.length;
+    if (cls) return true;
+    if (node.id || node.getAttribute("role") || node.getAttribute("data-node") || node.getAttribute("aria-label")) return true;
+    return /^(svg|path|circle|rect|text|g|img|canvas|video|button|a|input|textarea|select)$/.test(tag);
+  }
+
+  function replicaStyleKey(node) {
+    const tag = (node.tagName || "").toLowerCase();
+    if (!tag) return "";
+    const classes = Array.from(node.classList || []).filter(isStableClass).slice(0, 5);
+    if (classes.length) return `${tag}.${classes.join(".")}`;
+    if (node.id) return `${tag}#${node.id}`;
+    const role = node.getAttribute && node.getAttribute("role");
+    if (role) return `${tag}[role=${role}]`;
+    const aria = node.getAttribute && node.getAttribute("aria-label");
+    if (aria) return `${tag}[aria-label]`;
+    return tag;
+  }
+
+  function replicaNodeScore(node, root, selected) {
+    let score = 0;
+    if (node === root) score += 1000;
+    if (node === selected) score += 950;
+    if (node.parentElement === root) score += 400;
+    const r = safeRect(node);
+    score += Math.min(240, Math.sqrt(Math.max(0, r.width * r.height)) / 2);
+    const cls = Array.from(node.classList || []).join(" ");
+    if (/active|selected|current|open|dark|featured|primary|hero|stage|label|card|actor|outcome|memory|slat|wave/i.test(cls)) score += 120;
+    if (directText(node)) score += 40;
+    return score;
+  }
+
+  function getReplicaStyleSubset(node) {
+    const cs = getComputedStyle(node);
+    const baseline = getStyleBaseline(node.tagName);
+    const root = getPageStyleSnapshot();
+    const rows = [];
+    REPLICA_STYLE_PROPS.forEach(prop => {
+      const value = cssValue(cs, prop);
+      if (!value) return;
+      if (prop === "background-color" && /rgba\(0,\s*0,\s*0,\s*0\)/.test(value)) return;
+      if (prop === "background-image" && value === "none") return;
+      if (prop === "border-radius" && value === "0px") return;
+      if (/^border-(top|right|bottom|left)-width$/.test(prop) && parseFloat(value) === 0) return;
+      if (/^border-(top|right|bottom|left)-color$/.test(prop) && !hasAnyBorder(cs)) return;
+      if (prop.startsWith("animation-") && (cs.animationName === "none" || !cs.animationName)) return;
+      if (prop.startsWith("transition-") && isZeroDurationList(cs.transitionDuration)) return;
+      if (STYLE_ALWAYS_VS_ROOT.has(prop)) {
+        if (value === root[prop]) return;
+      } else if (value === (baseline[prop] || "")) {
+        return;
+      }
+      rows.push(`  ${prop}: ${value}`);
+    });
+    return rows.join("\n");
+  }
+
+  function variantLine(node) {
+    const data = ["data-node","data-step","data-state","aria-label","title"].map(name => {
+      const value = node.getAttribute && node.getAttribute(name);
+      return value ? `${name}="${truncate(value, 40)}"` : "";
+    }).filter(Boolean).join(" ");
+    return `${describeElement(node)} rect=${rectSize(node)}${data ? ` ${data}` : ""}${visibleSnippet(node)}`;
+  }
+
+  function rectSize(node) {
+    const r = safeRect(node);
+    return `${round2(r.width)}x${round2(r.height)}`;
+  }
+
+  function visibleSnippet(node) {
+    const text = (node.innerText || directText(node) || "").replace(/\s+/g, " ").trim();
+    return text ? ` text="${truncate(text, 70)}"` : "";
+  }
+
+  function isZeroDurationList(value) {
+    return String(value || "").split(",").every(part => {
+      const v = part.trim();
+      return !v || v === "0s" || v === "0ms";
+    });
+  }
+
   // CSS Custom Properties — only emit variables that DIFFER from :root (or
   // aren't on :root at all). Document Context already prints every :root var,
   // so an element-level snapshot would otherwise re-emit ~all of them.
@@ -641,9 +876,9 @@
 
   // Ancestor Chain — for an absolutely-positioned / transform-scaled child,
   // the containing-block ancestors decide *where* and *how* it actually renders.
-  // We walk up from el.parentElement keeping only "worth-keeping" ancestors
+  // We walk up from el.parentElement keeping every "worth-keeping" ancestor
   // (positioned, transformed, scrolling, semantic landmark, id-bearing,
-  // flex/grid, or clip/mask container) plus body, deduped, capped at 6.
+  // flex/grid, or clip/mask container) plus body.
   // Each kept ancestor gets a tight style subset (transform / containing-block
   // properties / background / clip) and its matched CSS rules — but only the
   // rules that haven't already been emitted in the element's own Matched
@@ -664,10 +899,7 @@
   const ANCESTOR_SEMANTIC_TAGS = new Set([
     "section","main","article","aside","nav","header","footer","form","dialog","figure","svg",
   ]);
-  const ANCESTOR_MAX = 6;
-  const ANCESTOR_STYLE_CHAR_CAP = 1000;
   const ANCESTOR_RULES_CHAR_CAP = 6000;
-  const ANCESTOR_TOTAL_CAP = 25000;
 
   function isAncestorWorthKeeping(node) {
     let cs;
@@ -699,12 +931,6 @@
       if (node === document.body) break;
       node = node.parentElement;
     }
-    if (chain.length > ANCESTOR_MAX) {
-      const head = chain.slice(0, ANCESTOR_MAX - 2);
-      const tail = chain.slice(-2);
-      const skipped = chain.length - (head.length + tail.length);
-      return [...head, { gap: skipped }, ...tail];
-    }
     return chain;
   }
 
@@ -722,7 +948,7 @@
       if (/^border-(top|right|bottom|left)-width$/.test(prop) && parseFloat(v) === 0) return;
       rows.push(`  ${prop}: ${v}`);
     });
-    return limitText(rows.join("\n"), ANCESTOR_STYLE_CHAR_CAP, "ancestor style truncated");
+    return rows.join("\n");
   }
 
   function getAncestorMatchedRules(node) {
@@ -741,18 +967,7 @@
     const chain = collectAncestorChain(el);
     if (!chain.length) return "";
     const blocks = [];
-    let used = 0;
     chain.forEach((entry, i) => {
-      if (used > ANCESTOR_TOTAL_CAP) {
-        if (!blocks.length || !/truncated for space/.test(blocks[blocks.length - 1])) {
-          blocks.push(`... ${chain.length - i} more ancestor${chain.length - i > 1 ? "s" : ""} truncated for space`);
-        }
-        return;
-      }
-      if (entry && typeof entry === "object" && "gap" in entry) {
-        blocks.push(`--- ${entry.gap} ancestor${entry.gap > 1 ? "s" : ""} skipped (low-signal middle layers) ---`);
-        return;
-      }
       const node = entry;
       const annotation = (i === 0) ? "  (immediate parent — also visible in Parent Snapshot open tag)" : "";
       const head = `[${i + 1}] ${describeElement(node)}${annotation}`;
@@ -762,7 +977,6 @@
       if (style) parts.push("style:\n" + style);
       if (rules) parts.push("rules (not already in Matched Rules above):\n" + rules);
       const block = parts.join("\n");
-      used += block.length;
       blocks.push(block);
     });
     return blocks.join("\n\n");
@@ -1106,6 +1320,123 @@
       if (blocks.length >= 12) return;
     });
     return blocks.join("\n\n");
+  }
+
+  function getFontUsageReport(root, selected) {
+    if (!root) return "";
+    const nodes = collectReplicaStyleNodes(root, selected).slice(0, 320);
+    const groups = new Map();
+    nodes.forEach(node => {
+      const cs = getComputedStyle(node);
+      const key = [
+        compactCssValue(cs.fontFamily),
+        cs.fontStyle,
+        cs.fontWeight,
+        cs.fontSize,
+        cs.lineHeight,
+        cs.letterSpacing,
+      ].join(" | ");
+      if (!groups.has(key)) groups.set(key, { key, sample: node, items: [] });
+      groups.get(key).items.push(node);
+    });
+    const rows = [];
+    Array.from(groups.values())
+      .sort((a, b) => b.items.length - a.items.length)
+      .slice(0, 18)
+      .forEach((group, i) => {
+        const [family, style, weight, size, lineHeight, letterSpacing] = group.key.split(" | ");
+        rows.push(`[${i + 1}] ${family}`);
+        rows.push(`  style=${style} weight=${weight} size=${size} line-height=${lineHeight} letter-spacing=${letterSpacing}`);
+        rows.push(`  sample: ${describeElement(group.sample)}${visibleSnippet(group.sample)}`);
+        if (group.items.length > 1) rows.push(`  used by ${group.items.length} sampled node${group.items.length > 1 ? "s" : ""}`);
+      });
+    return rows.join("\n");
+  }
+
+  function getAnimationRuntimeReport(root, selected) {
+    if (!root) return "";
+    const rows = [];
+    const stateRows = collectActiveStateRows(root, selected);
+    if (stateRows.length) rows.push("[active/runtime state]", ...stateRows);
+
+    const cssRows = collectCssAnimationRows(root, selected);
+    if (cssRows.length) {
+      if (rows.length) rows.push("");
+      rows.push("[css animations/transitions]", ...cssRows);
+    }
+
+    const svgRows = collectSvgAnimationRows(root);
+    if (svgRows.length) {
+      if (rows.length) rows.push("");
+      rows.push("[svg animation elements]", ...svgRows);
+    }
+    return rows.join("\n");
+  }
+
+  function collectActiveStateRows(root, selected) {
+    const rows = [];
+    const attrs = ["data-step","data-state","aria-expanded","aria-selected","aria-current","open"];
+    [root, selected].forEach(node => {
+      if (!node || node.nodeType !== 1) return;
+      const found = attrs.map(name => {
+        if (name === "open") return node.hasAttribute && node.hasAttribute("open") ? "open=true" : "";
+        const value = node.getAttribute && node.getAttribute(name);
+        return value ? `${name}="${truncate(value, 80)}"` : "";
+      }).filter(Boolean);
+      if (found.length) rows.push(`${node === root ? "root" : "selected"} ${describeElement(node)} ${found.join(" ")}`);
+    });
+    const active = Array.from(root.querySelectorAll ? root.querySelectorAll(".is-active,.active,[aria-selected='true'],[aria-current]") : [])
+      .filter(node => !isEditorElement(node))
+      .slice(0, 40);
+    active.forEach(node => rows.push(`${describeElement(node)} rect=${rectSize(node)}${visibleSnippet(node)}`));
+    return rows;
+  }
+
+  function collectCssAnimationRows(root, selected) {
+    const nodes = collectReplicaStyleNodes(root, selected).slice(0, 420);
+    const rows = [];
+    const seen = new Set();
+    nodes.forEach(node => {
+      const cs = getComputedStyle(node);
+      const hasAnimation = cs.animationName && cs.animationName !== "none";
+      const hasTransition = !isZeroDurationList(cs.transitionDuration);
+      if (!hasAnimation && !hasTransition) return;
+      const key = [
+        replicaStyleKey(node),
+        cs.animationName,
+        cs.animationDuration,
+        cs.animationDelay,
+        cs.transitionProperty,
+        cs.transitionDuration,
+        cs.transitionDelay,
+      ].join("|");
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(`${describeElement(node)} rect=${rectSize(node)}`);
+      if (hasAnimation) {
+        rows.push(`  animation-name=${cs.animationName}; duration=${cs.animationDuration}; delay=${cs.animationDelay}; easing=${cs.animationTimingFunction}; iteration=${cs.animationIterationCount}; fill=${cs.animationFillMode}; play-state=${cs.animationPlayState}`);
+      }
+      if (hasTransition) {
+        rows.push(`  transition-property=${cs.transitionProperty}; duration=${cs.transitionDuration}; delay=${cs.transitionDelay}; easing=${cs.transitionTimingFunction}`);
+      }
+      if (rows.length >= 80) rows.push("  additional animation rows folded by repeated signature");
+    });
+    return rows.slice(0, 80);
+  }
+
+  function collectSvgAnimationRows(root) {
+    const nodes = Array.from(root.querySelectorAll ? root.querySelectorAll("animate,animateMotion,animateTransform,set") : []).slice(0, 40);
+    return nodes.map(node => {
+      const owner = node.parentElement ? describeElement(node.parentElement) : "";
+      const attrs = ["attributeName","dur","begin","fill","repeatCount","path","from","to","values","keyTimes","keySplines"]
+        .map(name => {
+          const value = node.getAttribute(name);
+          return value ? `${name}="${truncate(value, 220)}"` : "";
+        })
+        .filter(Boolean)
+        .join(" ");
+      return `${describeElement(node)} in ${owner}${attrs ? ` ${attrs}` : ""}`;
+    });
   }
 
   // @font-face — pull rules for font families actually referenced by the
