@@ -50,10 +50,50 @@
            font-size:10px;color:#2a2a2a}
   .footer a{color:#444;text-decoration:none}
   .footer a:hover{color:#888}
+  .pro{
+    position:fixed;right:24px;bottom:24px;width:330px;max-width:calc(100vw - 32px);
+    padding:20px 20px 18px;border:1px solid rgba(255,255,255,.13);border-radius:8px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.13) 1px, transparent 0) 0 0/14px 14px,
+      linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.035) 42%, rgba(0,0,0,.18)),
+      #101010;
+    box-shadow:0 20px 60px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08);
+    overflow:hidden;
+  }
+  .pro::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg, rgba(255,255,255,.18), transparent 28%, transparent 72%, rgba(255,255,255,.07));
+    opacity:.42;
+  }
+  .pro-head{display:block;padding-right:74px;margin-bottom:14px}
+  .pro-tag{
+    position:absolute;top:12px;right:12px;padding:3px 8px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.72);
+    font-size:9px;font-weight:700;color:transparent;text-transform:uppercase;
+    background-image:linear-gradient(110deg,#7a7a7a 0%,#fff 32%,#bdbdbd 52%,#fff 70%,#7a7a7a 100%);
+    background-size:220% 100%;background-clip:text;-webkit-background-clip:text;
+    box-shadow:0 0 18px rgba(255,255,255,.12);
+    animation:pro-shimmer 2.6s linear infinite;z-index:2;
+  }
+  .pro-title{position:relative;z-index:1;font-size:18px;font-weight:700;color:#f5f5f5;line-height:1.2;letter-spacing:-.02em}
+  .pro-desc{position:relative;z-index:1;margin-bottom:14px}
+  .pro-desc ul{display:flex;flex-direction:column;gap:9px;list-style:none}
+  .pro-desc li{position:relative;padding-left:14px;font-size:11px;color:#9a9a9a;line-height:1.65}
+  .pro-desc li::before{content:"";position:absolute;left:0;top:.72em;width:4px;height:4px;border-radius:50%;background:#d8d8d8;box-shadow:0 0 10px rgba(255,255,255,.18)}
+  .pro-desc strong{color:#f2f2f2;font-weight:650}
+  .pro-link{
+    position:relative;z-index:1;display:inline-flex;align-items:center;gap:4px;
+    padding:6px 9px;border:1px solid rgba(255,255,255,.12);border-radius:6px;
+    background:rgba(255,255,255,.045);font-size:11px;font-weight:650;color:#e9e9e9;text-decoration:none;
+    cursor:default;
+  }
+  @keyframes pro-shimmer{to{background-position:-220% 0}}
+  @media (max-width:760px){.pro{position:static;width:auto;margin-top:44px;max-width:none}}
+  @media (prefers-reduced-motion: reduce){.pro-tag{animation:none}}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  var version = "0.3.6";
+  var version = "0.3.7";
   var base = location.href.replace(/[^/]*$/, "");
   var link = document.getElementById("bm-link");
   var dict = {
@@ -67,7 +107,11 @@ document.addEventListener("DOMContentLoaded", function () {
       step2Title: "Click the bookmark on any page",
       works: "Works everywhere — <code>localhost</code> · React · Next.js · production URLs",
       step3Title: "Select → Copy → Paste into your AI",
-      copyNote: "<span class=\"kbd\">⌘C</span> copies a structured prompt with element metadata<br>Paste into Claude Code · Codex · Cursor · any AI assistant",
+      copyNote: "<span class=\"kbd\">⌘C</span> copies a structured prompt with element metadata<br><span class=\"kbd\">⌘M</span> copies the selected content as Markdown",
+      proTag: "pro",
+      proTitle: "Selector Pro",
+      proDesc: "<ul><li><strong>Smoother capture workflow:</strong> full-element and full-page screenshots without the browser screen-share picker.</li><li><strong>Image prompt reverse engineering:</strong> select an image and turn it into a structured generation prompt.</li><li><strong>Image to Markdown:</strong> select an image and extract readable content into organized Markdown.</li></ul>",
+      proLink: "Coming soon",
     },
     zh: {
       title: "Selector — 可视化元素选择器",
@@ -79,7 +123,11 @@ document.addEventListener("DOMContentLoaded", function () {
       step2Title: "在任意页面点击书签",
       works: "支持常见页面 — <code>localhost</code> · React · Next.js · 线上环境",
       step3Title: "选择 → 复制 → 粘贴给 AI",
-      copyNote: "<span class=\"kbd\">⌘C</span> 复制带元素上下文的结构化提示词<br>可粘贴到 Claude Code · Codex · Cursor · 任意 AI 助手",
+      copyNote: "<span class=\"kbd\">⌘C</span> 复制带元素上下文的结构化提示词<br><span class=\"kbd\">⌘M</span> 复制选中内容为 Markdown",
+      proTag: "pro",
+      proTitle: "Selector Pro",
+      proDesc: "<ul><li><strong>更丝滑的截图体验：</strong>无需系统录屏选择弹窗，直接截取完整元素或整页。</li><li><strong>支持反推图片提示词：</strong>选中图片后生成结构化生图提示词，方便继续编辑。</li><li><strong>支持图片转 Markdown：</strong>选中图片后提取可读内容，并整理成 Markdown。</li></ul>",
+      proLink: "即将上线",
     },
   };
   var lang = loadLang();
@@ -194,6 +242,20 @@ document.addEventListener("DOMContentLoaded", function () {
         </p>
       </div>
     </div>
+  </div>
+  <div class="pro">
+    <div class="pro-head">
+      <span class="pro-tag" data-i18n="proTag">pro</span>
+      <span class="pro-title" data-i18n="proTitle">Browser extension — same UX, more power</span>
+    </div>
+    <div class="pro-desc" data-i18n="proDesc">
+      <ul>
+        <li><strong>Smoother capture workflow:</strong> full-element and full-page screenshots without the browser screen-share picker.</li>
+        <li><strong>Image prompt reverse engineering:</strong> select an image and turn it into a structured generation prompt.</li>
+        <li><strong>Image to Markdown:</strong> select an image and extract readable content into organized Markdown.</li>
+      </ul>
+    </div>
+    <span class="pro-link" data-i18n="proLink">Coming soon</span>
   </div>
   <div class="footer">
     <a href="https://github.com/oil-oil/selector" target="_blank">GitHub</a> · <span data-version></span>

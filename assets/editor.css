@@ -263,6 +263,56 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* ── Pro (extension) variant ──────────────────────────────────
+   Restrained titanium-gray corner gradient + a faint inset top
+   highlight (hardware-panel feel) — perceptible but never loud.
+   Only applied when HOST.isExtension adds `.ai-editor-pro`; the
+   bookmarklet renders the plain white card unchanged. */
+.ai-editor-chat.ai-editor-pro {
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 40%, #f3f4f7 100%);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(0, 0, 0, 0.03),
+    0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 16px 32px -4px rgba(0, 0, 0, 0.11);
+}
+
+/* Italic monospace "Pro" with a muted metal-gray text gradient,
+   replacing the version number in the Pro top bar. */
+.ai-editor-pro-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #444 0%, #888 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  user-select: none;
+}
+
+/* Pro top bar: a solid anodized-aluminium titanium-gray, with a precise
+   "machined seam" instead of a plain border — a top sharp highlight, a 1px
+   dark seam, and a faint bevel reflection below it. Reads as a finished
+   hardware panel; quietly apart from the free version's plain white. */
+.ai-editor-chat.ai-editor-pro .ai-editor-drag-handle {
+  background: #f5f6f8;
+  border-bottom: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    inset 0 -2px 0 rgba(255, 255, 255, 0.6);
+}
+.ai-editor-chat.ai-editor-pro .ai-editor-drag-handle:hover {
+  background: #edf0f3;
+}
+.ai-editor-chat.ai-editor-pro .ai-editor-status-label {
+  color: #9a9a9a;
+}
+
 .ai-editor-panel-actions {
   display: flex;
   gap: 1px;
@@ -337,6 +387,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Small thumbnail shown in a selection tag when the element is/contains an image. */
+.ai-editor-tag-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: cover;
+  margin-right: 4px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .ai-editor-tag-x {
@@ -429,11 +490,37 @@
 
 .ai-editor-copy-btn.ai-editor-copy-done {
   background: #16a34a;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
   gap: 4px;
+}
+
+.ai-editor-copy-btn.ai-editor-copy-done * {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
 }
 
 .ai-editor-copy-btn.ai-editor-copy-error {
   background: #dc2626;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+/* Analyzing an image (⌘I) — a smooth sheen sweeps across the Copy button (流光). */
+.ai-editor-copy-btn.ai-editor-copy-loading {
+  cursor: default;
+  /* !important so the 流光 sheen always wins — over the button's own :disabled
+     state AND over any aggressive button styles on the host page (a page rule
+     like `button:disabled{background:#e0e0e0!important}` was repainting it grey,
+     which is why the sheen sometimes vanished on real sites). */
+  color: #fff !important;
+  background-color: #111 !important;
+  background-image: linear-gradient(100deg, #111 0%, #111 42%, #6a6a6a 50%, #111 58%, #111 100%) !important;
+  background-size: 250% 100% !important;
+  animation: ai-editor-rev-sheen 1.15s linear infinite !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-editor-copy-btn.ai-editor-copy-loading { animation: none; }
 }
 
 .ai-editor-copy-btn .ai-editor-sharingan-icon {
@@ -697,6 +784,155 @@
   font-size: 10px;
   color: #888;
   line-height: 1.2;
+}
+
+/* ── Settings-panel cross-link (bookmarklet ⇄ Pro extension) ──
+   Deliberately quiet: a thin divider + muted text, matching the panel's
+   restrained palette. No card fill, no accent colour. */
+.ai-editor-settings-promo {
+  display: block;
+  margin: 6px 12px 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+}
+.ai-editor-settings-promo-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #555;
+  transition: color 120ms;
+}
+.ai-editor-settings-promo-desc {
+  display: block;
+  font-size: 10px;
+  color: #999;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.ai-editor-settings-promo-cta {
+  display: inline-block;
+  font-size: 10px;
+  color: #777;
+  margin-top: 5px;
+  transition: color 120ms;
+}
+.ai-editor-settings-promo:hover .ai-editor-settings-promo-title,
+.ai-editor-settings-promo:hover .ai-editor-settings-promo-cta {
+  color: #222;
+}
+
+/* ── Small stroke icon shared by setting rows + the license label ── */
+.ai-editor-setting-icon {
+  width: 14px;
+  height: 14px;
+  color: #8a8a8a;
+  flex-shrink: 0;
+}
+
+/* ── License status block (extension; replaces the old popup window) ── */
+.ai-editor-settings-license {
+  margin: 6px 12px 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.ai-editor-license-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ai-editor-license-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #555;
+}
+.ai-editor-license-state {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #888;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+}
+.ai-editor-license-state[data-state="active"] {
+  color: #2f8f4e;
+  background: rgba(47, 143, 78, 0.1);
+}
+.ai-editor-license-desc {
+  display: block;
+  font-size: 10px;
+  color: #999;
+  line-height: 1.4;
+  margin-top: 5px;
+}
+.ai-editor-license-action {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-top: 8px;
+  text-decoration: none;
+  transition: opacity 120ms;
+}
+.ai-editor-license-action:hover { opacity: 0.6; }
+
+/* ── Image → prompt result panel (⌘I) — anchored above the chat menu ── */
+.ai-editor-revprompt {
+  position: fixed;
+  z-index: 2147483647;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.03),
+    0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 16px 32px -4px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(4px);
+  animation: ai-editor-settings-in 160ms cubic-bezier(0.2, 0, 0.1, 1) forwards;
+}
+.ai-editor-revprompt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.ai-editor-revprompt-title { font-size: 11px; font-weight: 600; color: #333; letter-spacing: 0.02em; }
+.ai-editor-revprompt-close {
+  width: 20px; height: 20px; border: none; background: none; color: #bbb;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; padding: 0; font-size: 15px; line-height: 1;
+  transition: color 100ms, background 100ms;
+}
+.ai-editor-revprompt-close:hover { color: #444; background: rgba(0, 0, 0, 0.06); }
+.ai-editor-revprompt-body { padding: 12px; }
+.ai-editor-revprompt-text {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #2a2a2a;
+  max-height: 42vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.ai-editor-revprompt-err { font-size: 12px; color: #c0392b; padding: 4px 2px; }
+@keyframes ai-editor-rev-sheen {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-editor-revprompt { animation: none; opacity: 1; transform: none; }
+  .ai-editor-revprompt-sheen { animation: none; }
 }
 
 /* ── Toggle switch ────────────────────────────────────────── */

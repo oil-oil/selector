@@ -25,6 +25,7 @@ Open any web page, click the **Selector** bookmark.
 | **← / →** | Navigate to previous / next sibling |
 | **✎ button** | Add per-element instruction |
 | **⌘C** | Copy prompt to clipboard |
+| **⌘M** | Copy selected content as Markdown |
 | **⌘⇧C** | Copy selected area screenshot |
 | **⌘Z** | Undo last selection change |
 | **Esc** | Pause / resume when empty, clear selection when selected |

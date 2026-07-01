@@ -265,6 +265,21 @@
       const src = img.getAttribute("src") || "";
       if (!src || src.startsWith("data:")) return;
       if (img.naturalWidth * img.naturalHeight > IMAGE_INLINE_PIXEL_LIMIT) return;
+      // ── Host asset cache seam (HOST_CONTRACT.md §1.4) ─────────
+      // The extension can inline ANY origin. copyPrompt() pre-warms an async
+      // cross-origin fetch cache via HOST.prepareAssets() BEFORE this synchronous
+      // pipeline runs, then exposes a SYNCHRONOUS cache lookup here. A cache hit
+      // short-circuits the same-origin-only canvas path below; a miss falls
+      // through to the EXISTING canvas inlining (bookmarklet path, unchanged).
+      if (HOST.cachedAssetDataURL) {
+        try {
+          const hosted = HOST.cachedAssetDataURL(src);
+          if (hosted && typeof hosted === "string" && hosted.indexOf("data:") === 0) {
+            map.set(img, hosted);
+            return;
+          }
+        } catch (_) { /* fall through to same-origin canvas inlining */ }
+      }
       try {
         const canvas = document.createElement("canvas");
         canvas.width = img.naturalWidth;
@@ -847,7 +862,25 @@
     Array.from(document.styleSheets || []).forEach((sheet, index) => {
       let rules;
       try { rules = sheet.cssRules; }
-      catch (_) { inaccessible.push(sheet.href || `stylesheet #${index + 1}`); return; }
+      catch (_) {
+        // ── Host stylesheet seam (HOST_CONTRACT.md §11) ──────
+        // Cross-origin stylesheets throw on .cssRules access. The extension
+        // pre-warms a cache (copyPrompt → HOST.prepareStyles) that fetches the
+        // raw text and parses it into a CSSStyleSheet; here we read the parsed
+        // rules synchronously and walk them like any same-origin sheet. Miss →
+        // fall back to the existing "Inaccessible stylesheets" note (bookmarklet).
+        if (HOST.cachedStylesheetRules) {
+          try {
+            const hostedRules = HOST.cachedStylesheetRules(sheet.href);
+            if (hostedRules) {
+              walkCssRules(el, hostedRules, sheetLabel(sheet, index), [], state, "normal", hints);
+              return;
+            }
+          } catch (_) { /* fall through to inaccessible note */ }
+        }
+        inaccessible.push(sheet.href || `stylesheet #${index + 1}`);
+        return;
+      }
       walkCssRules(el, rules, sheetLabel(sheet, index), [], state, "normal", hints);
     });
     const rows = state.rows.slice();
@@ -1456,7 +1489,15 @@
     Array.from(document.styleSheets || []).forEach((sheet, index) => {
       let rules;
       try { rules = sheet.cssRules; }
-      catch (_) { return; }
+      catch (_) {
+        // Cross-origin: reuse the §11 pre-warmed parsed rules if available so we
+        // can still surface (and inline) @font-face declarations from that sheet.
+        if (HOST.cachedStylesheetRules) {
+          try { rules = HOST.cachedStylesheetRules(sheet.href); }
+          catch (_) { rules = null; }
+        }
+        if (!rules) return;
+      }
       collectFontFaceRules(rules, sheetLabel(sheet, index), families, rows, seen);
     });
     const loaded = describeLoadedFontFaces(families);
@@ -1481,6 +1522,37 @@
     return out;
   }
 
+  // ── Host font seam (HOST_CONTRACT.md §11) ──────────────────
+  // When the extension has pre-warmed a font binary (copyPrompt → prepareStyles
+  // → HOST.cachedFontDataURL), rewrite the @font-face `src: url(...)` to the
+  // cached dataURL so the receiving AI gets the actual font, not a dead URL.
+  // Bookmarklet has no HOST.cachedFontDataURL → returns rule.cssText unchanged.
+  function inlineFontFaceSrc(rule, source) {
+    const cssText = rule.cssText || "";
+    if (!HOST.cachedFontDataURL) return cssText;
+    // Resolve relative url()s against the owning stylesheet href (the source
+    // label is the sheet href when cross-origin), falling back to document base.
+    let baseHref = document.baseURI;
+    try {
+      const sheetHref = rule.parentStyleSheet && rule.parentStyleSheet.href;
+      if (sheetHref) baseHref = sheetHref;
+      else if (source && /^https?:/i.test(source)) baseHref = source;
+    } catch (_) {}
+    return cssText.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g, (whole, quote, raw) => {
+      const target = (raw || "").trim();
+      if (!target || target.indexOf("data:") === 0) return whole;
+      let abs = target;
+      try { abs = new URL(target, baseHref).href; } catch (_) {}
+      let hosted = null;
+      try { hosted = HOST.cachedFontDataURL(abs); }
+      catch (_) { hosted = null; }
+      if (hosted && typeof hosted === "string" && hosted.indexOf("data:") === 0) {
+        return `url("${hosted}")`;
+      }
+      return whole;
+    });
+  }
+
   function collectFontFaceRules(rules, source, families, rows, seen) {
     if (!rules) return;
     for (const rule of Array.from(rules)) {
@@ -1491,7 +1563,7 @@
         const key = `${source}::${rule.cssText}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        rows.push(`/* ${source} */\n${compactCssRule(rule.cssText || "")}`);
+        rows.push(`/* ${source} */\n${compactCssRule(inlineFontFaceSrc(rule, source))}`);
       } else if (rule.cssRules) {
         collectFontFaceRules(rule.cssRules, source, families, rows, seen);
       }
