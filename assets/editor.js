@@ -17,7 +17,7 @@
   // logic as the fallback. Never make a path Host-only.
   const HOST = (typeof window !== "undefined" && window.__SELECTOR_HOST__) || {};
   const AI_ID = "data-ai-id";
-  const VERSION = "0.3.7";
+  const VERSION = "0.3.8";
   // Cross-link targets for the settings-panel promo (bookmarklet ⇄ Pro extension).
   const EXT_LANDING_URL = "https://oil-oil.github.io/selector-extension/";
   const BOOKMARKLET_URL = "https://oil-oil.github.io/selector/";
@@ -43,7 +43,7 @@
       licActivate:"Activate →", licManage:"Manage subscription →", freeLink:"Free bookmarklet version →",
       skRevPrompt:"→ Prompt", revRunning:"Reading image…", revNoImage:"Select an element first", revFailed:"Couldn't generate a prompt",
       revTitle:"Image → generation prompt", revCopied:"Copied to clipboard — paste into your image model.", copyGenPrompt:"Copy image prompt",
-      mdTitle:"Copied Markdown", copyMarkdown:"Copy Markdown",
+      mdTitle:"Markdown ready", copyMarkdown:"Copy Markdown",
       errUnsupported:"Browser not supported", errCancelled:"Screen choice cancelled",
       errPermission:"Screen recording blocked", errClipboard:"Clipboard blocked",
       errCapture:"Screenshot failed", errEmpty:"Selected area is empty",
@@ -67,7 +67,7 @@
       licActivate:"\u6fc0\u6d3b \u2192", licManage:"\u7ba1\u7406\u8ba2\u9605 \u2192", freeLink:"\u514d\u8d39\u4e66\u7b7e\u7248 \u2192",
       skRevPrompt:"\u53cd\u63a8", revRunning:"\u8bfb\u56fe\u4e2d\u2026", revNoImage:"\u8bf7\u5148\u9009\u4e2d\u4e00\u4e2a\u5143\u7d20", revFailed:"\u53cd\u63a8\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5",
       revTitle:"\u56fe\u7247 \u2192 \u751f\u6210\u63d0\u793a\u8bcd", revCopied:"\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f \u2014\u2014 \u7c98\u5230\u4f60\u7684\u751f\u56fe\u6a21\u578b\u5373\u53ef\u3002", copyGenPrompt:"\u590d\u5236\u751f\u56fe\u63d0\u793a\u8bcd",
-      mdTitle:"\u5df2\u590d\u5236 Markdown", copyMarkdown:"\u590d\u5236 Markdown",
+      mdTitle:"Markdown \u5df2\u751f\u6210", copyMarkdown:"\u590d\u5236 Markdown",
       errUnsupported:"\u6d4f\u89c8\u5668\u4e0d\u652f\u6301", errCancelled:"\u5df2\u53d6\u6d88\u5c4f\u5e55\u9009\u62e9",
       errPermission:"\u5c4f\u5e55\u5f55\u5236\u6743\u9650\u53d7\u9650", errClipboard:"\u526a\u8d34\u677f\u6743\u9650\u53d7\u9650",
       errCapture:"\u622a\u56fe\u5931\u8d25", errEmpty:"\u9009\u4e2d\u533a\u57df\u65e0\u6cd5\u622a\u56fe",
@@ -312,7 +312,10 @@
       else togglePaused();
       return;
     }
-    if(mod&&e.key.toLowerCase()==="c"&&!e.shiftKey&&selectedElements.length>0){ e.preventDefault(); copyPrompt(); return; }
+    // ⌘C also works with NO selection while a result panel is open (⌘M with
+    // no selection falls back to the page body, so there may be nothing
+    // selected) — copyPrompt()'s pendingGenPrompt branch handles it.
+    if(mod&&e.key.toLowerCase()==="c"&&!e.shiftKey&&(selectedElements.length>0||pendingGenPrompt)){ e.preventDefault(); copyPrompt(); return; }
     if(mod&&e.shiftKey&&e.key.toLowerCase()==="c"&&selectedElements.length>0){ e.preventDefault(); captureScreenshot(); return; }
     if(mod&&!e.shiftKey&&e.key.toLowerCase()==="m"){ e.preventDefault(); copyAsMarkdown(); return; }
     if(mod&&!e.shiftKey&&e.key.toLowerCase()==="i"&&(HOST.reversePrompt||HOST.reversePromptStream)&&selectedElements.length>0){ e.preventDefault(); reversePromptForSelection(); return; }
@@ -815,6 +818,7 @@
       try {
         const payload = await HOST.buildCopyPayload(fmt, {
           elements: selectedElements,
+          lang,
           buildPromptText,
           buildSharinganReport,
         });
@@ -871,7 +875,18 @@
   const MARKDOWN_BLOCK_TAGS = new Set(["address","article","aside","blockquote","dd","details","div","dl","dt","figcaption","figure","footer","form","h1","h2","h3","h4","h5","h6","header","hr","li","main","nav","ol","p","pre","section","table","ul"]);
 
   function mdCollapse(s) { return String(s || "").replace(/[\t\n\r ]+/g, " "); }
-  function mdEscape(s) { return String(s || "").replace(/([\\`*_{}\[\]()#+\-.!>|~])/g, "\\$1"); }
+  // Position-sensitive escaping: inline-anywhere metas everywhere, line-leading
+  // constructs (#, >, lists) only at the node start — escaping every ".-()!"
+  // drowned prose in noise ("e\.g\.") without adding safety.
+  function mdEscape(s) {
+    return String(s || "")
+      .replace(/([\\`*_\[\]<])/g, "\\$1")
+      .replace(/~~/g, "\\~~")
+      .replace(/^(\s*)(#{1,6})(\s|$)/, "$1\\$2$3")
+      .replace(/^(\s*)>/, "$1\\>")
+      .replace(/^(\s*)([-+])(\s)/, "$1\\$2$3")
+      .replace(/^(\s*)(\d+)\.(\s)/, "$1$2\\.$3");
+  }
   function mdEscapeCell(s) { return String(s || "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n+/g, "<br>"); }
   function mdResolve(raw, el) {
     if (!raw) return "";
@@ -943,6 +958,20 @@
     const longest = Math.max(0, ...((code.match(/`+/g) || []).map(run => run.length)));
     return "`".repeat(Math.max(3, longest + 1));
   }
+  function mdPreText(root) {
+    let out = "";
+    const gutter = /(?:^|\s)(?:line-numbers?(?:-rows)?|line-?number|linenos?|hljs-ln-numbers?|gutter)(?:\s|$)/i;
+    (function walk(node) {
+      for (const ch of Array.from(node.childNodes)) {
+        if (ch.nodeType === 3) { out += ch.nodeValue; continue; }
+        if (ch.nodeType !== 1) continue;
+        if (ch.tagName.toLowerCase() === "br") { out += "\n"; continue; }
+        if (gutter.test(typeof ch.className === "string" ? ch.className : "") || ch.hidden || ch.getAttribute("aria-hidden") === "true") continue;
+        walk(ch);
+      }
+    })(root);
+    return out;
+  }
   function mdCodeLang(el) {
     const probes = [el, el.querySelector && el.querySelector("code")].filter(Boolean);
     for (const node of probes) {
@@ -964,7 +993,9 @@
     if (tag === "hr") return "---";
     if (tag === "pre") {
       const codeEl = el.querySelector("code");
-      const code = ((codeEl || el).textContent || "").replace(/\r\n?/g, "\n").replace(/^\n|\n[ \t]*$/g, "");
+      // textContent flattens <br>-separated code onto one line and includes
+      // highlighter line-number gutters — walk instead.
+      const code = mdPreText(codeEl || el).replace(/\r\n?/g, "\n").replace(/^\n|\n[ \t]*$/g, "");
       const fence = mdFence(code);
       return fence + mdCodeLang(el) + "\n" + code + "\n" + fence;
     }
@@ -1023,7 +1054,29 @@
   function mdTable(table) {
     const rows = Array.from(table.querySelectorAll("tr")).filter(row => !mdHidden(row));
     if (!rows.length) return "";
-    const matrix = rows.map(row => Array.from(row.children).filter(cell => /^(td|th)$/i.test(cell.tagName) && !mdHidden(cell)).map(cell => mdEscapeCell(mdFlow(cell) || mdInlineChildren(cell)).trim()));
+    // carry[col] = how many following rows are still covered by a rowspan cell
+    // opened above; without it every row under a colspan/rowspan shifts left.
+    const carry = [];
+    const matrix = rows.map(row => {
+      const out = [];
+      let col = 0;
+      const fillCarried = () => { while (carry[col] > 0) { carry[col] -= 1; out[col] = ""; col += 1; } };
+      for (const cell of Array.from(row.children)) {
+        if (!/^(td|th)$/i.test(cell.tagName) || mdHidden(cell)) continue;
+        fillCarried();
+        const text = mdEscapeCell(mdFlow(cell) || mdInlineChildren(cell)).trim();
+        const span = parseInt(cell.getAttribute("colspan"), 10) || 1;
+        const rspan = parseInt(cell.getAttribute("rowspan"), 10) || 1;
+        for (let s = 0; s < span; s++) {
+          out[col] = text;
+          if (rspan > 1) carry[col] = (carry[col] || 0) + (rspan - 1);
+          col += 1;
+        }
+      }
+      fillCarried();
+      for (let i = 0; i < out.length; i++) if (out[i] === undefined) out[i] = "";
+      return out;
+    });
     const width = Math.max(1, ...matrix.map(row => row.length));
     matrix.forEach(row => { while (row.length < width) row.push(""); });
     const header = matrix[0];
@@ -1040,15 +1093,33 @@
   // selection when there is one, otherwise the page's main readable content
   // (article/main/body). Press ⌘C while the panel is open to copy the Markdown.
   async function copyAsMarkdown() {
+    // ── License gate (HOST_CONTRACT.md §1.2) ──────────────────
+    // Bookmarklet has no HOST.licensing → skipped. The extension's image branch
+    // calls the vision model, so ⌘M must honor the same gate as ⌘C / ⌘⇧C.
+    if (HOST.licensing && HOST.licensing.required && !HOST.licensing.active) {
+      HOST.requestActivation && HOST.requestActivation("copy");
+      showCopyFeedback(t("needLicense"), true);
+      return;
+    }
     let els = selectedElements.length
       ? selectedElements.slice()
       : [document.querySelector("main, article, [role='main']") || document.body];
     els = els.filter(Boolean);
     if (!els.length) return;
     try {
-      const payload = HOST.buildCopyPayload
-        ? await HOST.buildCopyPayload("markdown", { elements: els, buildPromptText, buildSharinganReport })
-        : localMarkdownPayload(els);
+      // §1.5: a null/failed host payload falls back to the built-in serializer
+      // so the extension is never WORSE than the bookmarklet on the same page.
+      let payload = null;
+      if (HOST.buildCopyPayload) {
+        // The host's image branch round-trips a vision model (up to ~60s) —
+        // reuse ⌘I's shimmer loading so the UI never looks dead meanwhile.
+        setCopyButtonLoading(true);
+        try {
+          payload = await HOST.buildCopyPayload("markdown", { elements: els, lang, buildPromptText, buildSharinganReport });
+        } catch (_) { payload = null; }
+        setCopyButtonLoading(false);
+      }
+      if (!payload) payload = localMarkdownPayload(els);
       if (payload && payload.text) {
         showRevPromptPanel("mdTitle");
         pushRevToken(payload.text);
@@ -1063,6 +1134,16 @@
   // and show it. Bookmarklet has no HOST.reversePrompt → ⌘I is never bound.
   function imageSourceFromElement(el) {
     if (!el) return null;
+    // A selection that carries real text is a UI region, not "an image" — let
+    // the caller fall through to the screenshot branch (UI reverse prompt)
+    // instead of reverse-prompting a thumbnail / decorative background found
+    // inside it. Bare <img> still short-circuits below.
+    if (el.tagName !== "IMG") {
+      try {
+        const visText = (el.innerText || "").replace(/\s+/g, " ").trim();
+        if (visText.length >= 120) return null;
+      } catch (_) {}
+    }
     const img = (el.tagName === "IMG") ? el : (el.querySelector && el.querySelector("img"));
     if (img && (img.currentSrc || img.src)) {
       const out = { url: img.currentSrc || img.src };
@@ -1240,6 +1321,14 @@
 
   async function reversePromptForSelection() {
     if (!HOST.reversePrompt && !HOST.reversePromptStream) return;
+    // ── License gate (HOST_CONTRACT.md §1.2) ──────────────────
+    // ⌘I always calls the vision model — the most expensive action in the
+    // product — so it must honor the same gate as ⌘C / ⌘⇧C.
+    if (HOST.licensing && HOST.licensing.required && !HOST.licensing.active) {
+      HOST.requestActivation && HOST.requestActivation("copy");
+      showCopyFeedback(t("needLicense"), true);
+      return;
+    }
     if (selectedElements.length === 0) { showCopyFeedback(t("revNoImage"), true); return; }
     closeRevPromptResult();
     setCopyButtonLoading(true);
@@ -1255,7 +1344,15 @@
       }
       if (!src) {
         const blob = await captureScreenshotBlob();
-        src = { dataUrl: await blobToReversePromptDataURL(blob) };
+        // UI mode: the selection is an interface region, not a picture. The
+        // host consumes `elements` (live nodes, MAIN-world only — they never
+        // cross the bridge) into a measured style digest so the model quotes
+        // real colors/fonts/spacing instead of estimating them from pixels.
+        src = {
+          dataUrl: await blobToReversePromptDataURL(blob),
+          kind: "ui",
+          elements: selectedElements.slice(),
+        };
       }
       // The prompt language follows the extension's current UI language.
       const payload = Object.assign({ lang: lang === "zh" ? "zh" : "en" }, src);
@@ -1319,7 +1416,11 @@
     const feedbackTarget = opts.feedbackTarget || "screenshot";
     const showError = (code, err) => feedbackTarget === "copy" ? showCopyCaptureError(code, err) : showScreenshotError(code, err);
     const showSuccess = (savedImage) => feedbackTarget === "copy" ? showCopyFeedback(opts.downloadImage && savedImage ? t("copiedSaved") : t("copied")) : showScreenshotFeedback(t("screenshotCopied"));
-    if (!navigator.clipboard || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    // getDisplayMedia is only a requirement on the bookmarklet path; the
+    // extension host captures via captureVisibleTab and must not be blocked
+    // on pages where mediaDevices is absent (e.g. non-secure contexts).
+    const hostCanCapture = !!(HOST.grabViewportFrame || HOST.captureRegion);
+    if (!navigator.clipboard || (!hostCanCapture && (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia))) {
       showError("unsupported");
       return;
     }
