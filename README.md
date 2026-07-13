@@ -82,6 +82,10 @@ npm run build
 # Push to main — GitHub Actions builds dist/ and deploys GitHub Pages
 ```
 
+<p align="center">
+  <sub>This README was structured and designed with <a href="https://github.com/oil-oil/beautify-github-readme"><code>beautify-github-readme</code></a>.</sub>
+</p>
+
 ## License
 
 MIT
