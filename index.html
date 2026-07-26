@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Selector — Visual Element Picker</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%23111'/></svg>">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -12,12 +12,18 @@
     font-family:'SF Mono',Menlo,Monaco,'Cascadia Code',monospace;
     min-height:100vh;display:flex;align-items:center;justify-content:center;
   }
-  .wrap{max-width:460px;width:100%;padding:48px 32px}
+  .wrap{max-width:380px;width:100%;padding:32px 24px}
   .dot{width:6px;height:6px;background:#4ade80;border-radius:50%;
        display:inline-block;margin-right:8px;
        animation:pulse 2.4s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .status{display:flex;align-items:center;margin-bottom:32px;font-size:11px;color:#404040;letter-spacing:.1em;text-transform:uppercase}
+  .status{display:flex;align-items:center;gap:8px;margin-bottom:32px;font-size:11px;color:#404040;letter-spacing:.1em;text-transform:uppercase}
+  .status-main{display:flex;align-items:center;min-width:0;flex:1}
+  .version{margin-left:8px;color:#333;letter-spacing:0;text-transform:none}
+  .lang-switch{display:flex;align-items:center;gap:6px;letter-spacing:0;text-transform:none}
+  .lang-btn{appearance:none;border:0;background:transparent;color:#333;font:inherit;font-size:10px;cursor:pointer;padding:0}
+  .lang-btn:hover,.lang-btn.active{color:#888}
+  .lang-sep{color:#222}
   h1{font-size:20px;font-weight:500;color:#fff;margin-bottom:6px;letter-spacing:-.02em}
   .sub{font-size:12px;color:#505050;margin-bottom:44px;line-height:1.6}
   .steps{display:flex;flex-direction:column;gap:32px}
@@ -44,19 +50,161 @@
            font-size:10px;color:#2a2a2a}
   .footer a{color:#444;text-decoration:none}
   .footer a:hover{color:#888}
+  .pro{
+    position:fixed;right:24px;bottom:24px;width:330px;max-width:calc(100vw - 32px);
+    padding:20px 20px 18px;border:1px solid rgba(255,255,255,.13);border-radius:8px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.13) 1px, transparent 0) 0 0/14px 14px,
+      linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.035) 42%, rgba(0,0,0,.18)),
+      #101010;
+    box-shadow:0 20px 60px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08);
+    overflow:hidden;
+  }
+  .pro::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg, rgba(255,255,255,.18), transparent 28%, transparent 72%, rgba(255,255,255,.07));
+    opacity:.42;
+  }
+  .pro-head{display:block;padding-right:74px;margin-bottom:14px}
+  .pro-tag{
+    position:absolute;top:12px;right:12px;padding:3px 8px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.72);
+    font-size:9px;font-weight:700;color:transparent;text-transform:uppercase;
+    background-image:linear-gradient(110deg,#7a7a7a 0%,#fff 32%,#bdbdbd 52%,#fff 70%,#7a7a7a 100%);
+    background-size:220% 100%;background-clip:text;-webkit-background-clip:text;
+    box-shadow:0 0 18px rgba(255,255,255,.12);
+    animation:pro-shimmer 2.6s linear infinite;z-index:2;
+  }
+  .pro-title{position:relative;z-index:1;font-size:18px;font-weight:700;color:#f5f5f5;line-height:1.2;letter-spacing:-.02em}
+  .pro-desc{position:relative;z-index:1;margin-bottom:14px}
+  .pro-desc ul{display:flex;flex-direction:column;gap:9px;list-style:none}
+  .pro-desc li{position:relative;padding-left:14px;font-size:11px;color:#9a9a9a;line-height:1.65}
+  .pro-desc li::before{content:"";position:absolute;left:0;top:.72em;width:4px;height:4px;border-radius:50%;background:#d8d8d8;box-shadow:0 0 10px rgba(255,255,255,.18)}
+  .pro-desc strong{color:#f2f2f2;font-weight:650}
+  .pro-link{
+    position:relative;z-index:1;display:inline-flex;align-items:center;gap:4px;
+    padding:6px 9px;border:1px solid rgba(255,255,255,.12);border-radius:6px;
+    background:rgba(255,255,255,.045);font-size:11px;font-weight:650;color:#e9e9e9;text-decoration:none;
+    cursor:default;
+  }
+  @keyframes pro-shimmer{to{background-position:-220% 0}}
+  @media (max-width:760px){.pro{position:static;width:auto;margin-top:44px;max-width:none}}
+  @media (prefers-reduced-motion: reduce){.pro-tag{animation:none}}
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  var version = "0.3.9";
   var base = location.href.replace(/[^/]*$/, "");
   var link = document.getElementById("bm-link");
+  var dict = {
+    en: {
+      title: "Selector — Visual Element Picker",
+      status: "install",
+      subtitle: "Point at any element. Tell your AI what to change.",
+      step1Title: "Drag to bookmarks bar",
+      setup: "one-time setup",
+      error: "Failed to load assets. Make sure this page is served over HTTP(S).",
+      step2Title: "Click the bookmark on any page",
+      works: "Works everywhere — <code>localhost</code> · React · Next.js · production URLs",
+      step3Title: "Select → Copy → Paste into your AI",
+      copyNote: "<span class=\"kbd\">⌘C</span> copies a structured prompt with element metadata<br><span class=\"kbd\">⌘M</span> copies the selected content as Markdown",
+      proTag: "pro",
+      proTitle: "Selector Pro",
+      proDesc: "<ul><li><strong>Smoother capture workflow:</strong> full-element and full-page screenshots without the browser screen-share picker.</li><li><strong>Image prompt reverse engineering:</strong> select an image and turn it into a structured generation prompt.</li><li><strong>Image to Markdown:</strong> select an image and extract readable content into organized Markdown.</li></ul>",
+      proLink: "Coming soon",
+    },
+    zh: {
+      title: "Selector — 可视化元素选择器",
+      status: "安装",
+      subtitle: "选中页面元素，把修改意图准确交给 AI。",
+      step1Title: "拖到书签栏",
+      setup: "只需要设置一次",
+      error: "资源加载失败。请确认这个页面通过 HTTP(S) 打开。",
+      step2Title: "在任意页面点击书签",
+      works: "支持常见页面 — <code>localhost</code> · React · Next.js · 线上环境",
+      step3Title: "选择 → 复制 → 粘贴给 AI",
+      copyNote: "<span class=\"kbd\">⌘C</span> 复制带元素上下文的结构化提示词<br><span class=\"kbd\">⌘M</span> 复制选中内容为 Markdown",
+      proTag: "pro",
+      proTitle: "Selector Pro",
+      proDesc: "<ul><li><strong>更丝滑的截图体验：</strong>无需系统录屏选择弹窗，直接截取完整元素或整页。</li><li><strong>支持反推图片提示词：</strong>选中图片后生成结构化生图提示词，方便继续编辑。</li><li><strong>支持图片转 Markdown：</strong>选中图片后提取可读内容，并整理成 Markdown。</li></ul>",
+      proLink: "即将上线",
+    },
+  };
+  var lang = loadLang();
 
-  Promise.all([
-    fetch(base + "assets/editor.css").then(function (r) { return r.text(); }),
-    fetch(base + "assets/editor.js").then(function (r) { return r.text(); }),
-  ])
+  function loadLang() {
+    try {
+      var stored = localStorage.getItem("selector-install-lang");
+      if (stored === "zh" || stored === "en") return stored;
+    } catch (_) {}
+    return /^zh\b/i.test(navigator.language || "") ? "zh" : "en";
+  }
+
+  function setLang(nextLang) {
+    lang = nextLang === "zh" ? "zh" : "en";
+    try { localStorage.setItem("selector-install-lang", lang); } catch (_) {}
+    applyI18n();
+  }
+
+  function applyI18n() {
+    var texts = dict[lang] || dict.en;
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = texts.title;
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (texts[key]) el.innerHTML = texts[key];
+    });
+    document.querySelectorAll("[data-lang]").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+    });
+  }
+
+  document.querySelectorAll("[data-lang]").forEach(function (btn) {
+    btn.addEventListener("click", function () { setLang(btn.getAttribute("data-lang")); });
+  });
+  document.querySelectorAll("[data-version]").forEach(function (el) {
+    el.textContent = "v" + version;
+  });
+  applyI18n();
+
+  function fetchAsset(path, kind) {
+    var url = base + path + (path.indexOf("?") === -1 ? "?" : "&") + "v=" + encodeURIComponent(version);
+    return fetch(url, { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error(path + " returned HTTP " + r.status);
+      return r.text();
+    }).then(function (text) {
+      if (kind === "script" && /^\s*</.test(text)) {
+        throw new Error(path + " returned HTML instead of JavaScript");
+      }
+      return text;
+    });
+  }
+
+  var editorAssets = [
+    "assets/payload-00.css",
+    "assets/payload-01.css",
+    "assets/payload-02.css",
+    "assets/payload-03.css",
+    "assets/payload-04.css",
+    "assets/payload-05.css",
+    "assets/payload-06.css",
+  ];
+
+  function decodePayload(encoded) {
+    var binary = atob(encoded.replace(/\s+/g, ""));
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+
+  Promise.all(
+    [fetchAsset("assets/editor.css", "style")].concat(
+      editorAssets.map(function (path) { return fetchAsset(path, "script"); })
+    )
+  )
   .then(function (results) {
     var css = results[0];
-    var js  = results[1];
+    var js  = results.slice(1).map(decodePayload).join("");
 
     // Inject CSS via <style> element, but run JS directly in the
     // bookmarklet context — no <script> element needed.
@@ -81,39 +229,60 @@ document.addEventListener("DOMContentLoaded", function () {
 </head>
 <body>
 <div class="wrap">
-  <div class="status"><span class="dot"></span>install</div>
+  <div class="status">
+    <span class="status-main"><span class="dot"></span><span data-i18n="status">install</span> <span class="version" data-version></span></span>
+    <span class="lang-switch" aria-label="Language">
+      <button class="lang-btn" type="button" data-lang="en">EN</button>
+      <span class="lang-sep">/</span>
+      <button class="lang-btn" type="button" data-lang="zh">中文</button>
+    </span>
+  </div>
   <h1>Selector</h1>
-  <p class="sub">Point at any element. Tell your AI what to change.</p>
+  <p class="sub" data-i18n="subtitle">Point at any element. Tell your AI what to change.</p>
   <div class="steps">
     <div class="step">
       <span class="num">01</span>
       <div class="step-body">
-        <div class="step-title">Drag to bookmarks bar</div>
+        <div class="step-title" data-i18n="step1Title">Drag to bookmarks bar</div>
         <a class="bm loading" id="bm-link" href="#">Selector</a>
-        <p class="note">one-time setup</p>
-        <p class="err" id="bm-err">Failed to load assets. Make sure this page is served over HTTP(S).</p>
+        <p class="note" data-i18n="setup">one-time setup</p>
+        <p class="err" id="bm-err" data-i18n="error">Failed to load assets. Make sure this page is served over HTTP(S).</p>
       </div>
     </div>
     <div class="step">
       <span class="num">02</span>
       <div class="step-body">
-        <div class="step-title">Click the bookmark on any page</div>
-        <p class="note">Works everywhere &mdash; <code>localhost</code> &middot; React &middot; Next.js &middot; production URLs</p>
+        <div class="step-title" data-i18n="step2Title">Click the bookmark on any page</div>
+        <p class="note" data-i18n="works">Works everywhere &mdash; <code>localhost</code> &middot; React &middot; Next.js &middot; production URLs</p>
       </div>
     </div>
     <div class="step">
       <span class="num">03</span>
       <div class="step-body">
-        <div class="step-title">Select &rarr; Copy &rarr; Paste into your AI</div>
-        <p class="note">
+        <div class="step-title" data-i18n="step3Title">Select &rarr; Copy &rarr; Paste into your AI</div>
+        <p class="note" data-i18n="copyNote">
           <span class="kbd">&#8984;C</span> copies a structured prompt with element metadata<br>
           Paste into Claude Code &middot; Codex &middot; Cursor &middot; any AI assistant
         </p>
       </div>
     </div>
   </div>
+  <div class="pro">
+    <div class="pro-head">
+      <span class="pro-tag" data-i18n="proTag">pro</span>
+      <span class="pro-title" data-i18n="proTitle">Browser extension — same UX, more power</span>
+    </div>
+    <div class="pro-desc" data-i18n="proDesc">
+      <ul>
+        <li><strong>Smoother capture workflow:</strong> full-element and full-page screenshots without the browser screen-share picker.</li>
+        <li><strong>Image prompt reverse engineering:</strong> select an image and turn it into a structured generation prompt.</li>
+        <li><strong>Image to Markdown:</strong> select an image and extract readable content into organized Markdown.</li>
+      </ul>
+    </div>
+    <span class="pro-link" data-i18n="proLink">Coming soon</span>
+  </div>
   <div class="footer">
-    <a href="https://github.com/oil-oil/selector" target="_blank">GitHub</a>
+    <a href="https://github.com/oil-oil/selector" target="_blank">GitHub</a> · <span data-version></span>
   </div>
 </div>
 </body>

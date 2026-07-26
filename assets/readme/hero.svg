@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="320" viewBox="0 0 1200 320"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Selector — visual element picker for AI coding</title>
+  <desc id="desc">A warm editorial title panel paired with a real example of the structured context Selector copies from a selected web element.</desc>
+
+  <defs>
+    <clipPath id="canvas-clip">
+      <rect width="1200" height="320" rx="26"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#canvas-clip)">
+    <rect width="1200" height="320" fill="#f1eee6"/>
+    <rect width="17" height="320" fill="#c84b31"/>
+  </g>
+
+  <g id="title-block" transform="translate(58 0)">
+    <text x="0" y="42"
+          fill="#66635d"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="13" font-weight="600" letter-spacing="3">VISUAL ELEMENT PICKER · BOOKMARKLET</text>
+
+    <circle cx="16" cy="135" r="15" fill="#0f0f0f"/>
+
+    <text x="49" y="169"
+          fill="#0f0f0f"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Arial, sans-serif"
+          font-size="96" font-weight="800" letter-spacing="-5">SELECTOR</text>
+
+    <text x="1" y="220"
+          fill="#3f3d39"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="23" font-weight="600">Point at any element. Tell your AI what to change.</text>
+
+    <text x="1" y="278"
+          fill="#77736c"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="13" letter-spacing="0.7">oil-oil / selector</text>
+  </g>
+
+  <g id="copied-context" transform="translate(735 44)">
+    <rect width="407" height="232" fill="#111110"/>
+
+    <text x="27" y="34"
+          fill="#6f6d68"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="12" font-weight="600" letter-spacing="2">COPIED CONTEXT</text>
+
+    <text x="27" y="76"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="15">
+      <tspan fill="#d85436">Page:</tspan>
+      <tspan fill="#d7d3ca"> github.com/oil-oil/selector</tspan>
+    </text>
+
+    <text x="27" y="119"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="15">
+      <tspan fill="#6f6d68">1.</tspan>
+      <tspan fill="#d7d3ca"> heading </tspan>
+      <tspan fill="#ffffff" font-weight="700">&quot;Selector&quot;</tspan>
+      <tspan fill="#8a8780"> &lt;h1&gt;</tspan>
+    </text>
+
+    <text x="52" y="157"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="15">
+      <tspan fill="#d85436">locator:</tspan>
+      <tspan fill="#d7d3ca"> heading </tspan>
+      <tspan fill="#ffffff">&quot;Selector&quot;</tspan>
+    </text>
+
+    <text x="52" y="195"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+          font-size="15">
+      <tspan fill="#d85436">inside:</tspan>
+      <tspan fill="#d7d3ca"> article </tspan>
+      <tspan fill="#ffffff">&quot;Selector&quot;</tspan>
+    </text>
+  </g>
+</svg>
