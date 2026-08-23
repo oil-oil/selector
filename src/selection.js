@@ -82,7 +82,7 @@
   }
 
   // ── Hover overlay ────────────────────────────────────────────
-  function createHoverBox() { hoverBox = document.createElement("div"); hoverBox.className = `${NS}-hover-box${HOST.isExtension ? ` ${NS}-pro-hover` : ""}`; document.body.appendChild(hoverBox); }
+  function createHoverBox() { hoverBox = document.createElement("div"); hoverBox.className = `${NS}-root ${NS}-hover-box${HOST.isExtension ? ` ${NS}-pro-hover` : ""}`; mountSelectorSurface(hoverBox); }
   function showHover(el) {
     if (!el || isEditorElement(el) || selectedElements.includes(el)) { hoverBox.style.opacity = "0"; return; }
     const r = el.getBoundingClientRect();
@@ -97,8 +97,8 @@
       const dx = e.clientX - dragState.startX, dy = e.clientY - dragState.startY;
       if (!dragState.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
         dragState.isDragging = true;
-        dragState.marquee = document.createElement("div"); dragState.marquee.className = `${NS}-marquee`;
-        document.body.appendChild(dragState.marquee); showHover(null);
+        dragState.marquee = document.createElement("div"); dragState.marquee.className = `${NS}-root ${NS}-marquee`;
+        mountSelectorSurface(dragState.marquee); scheduleSelectorLayerRefresh(); showHover(null);
       }
       if (dragState.isDragging) {
         dragState.marquee.style.left = Math.min(e.clientX, dragState.startX)+"px";
@@ -141,9 +141,9 @@
   // ── Selection overlays ──────────────────────────────────────
   function createSelOverlay(el) {
     const aiId = el.getAttribute(AI_ID); if (selOverlays.has(aiId)) return;
-    const box = document.createElement("div"); box.className = `${NS}-sel-box${HOST.isExtension ? ` ${NS}-pro-selection` : ""}`;
-    const corners = [0,1,2,3].map(i => { const c = document.createElement("div"); c.className = `${NS}-sel-corner${HOST.isExtension ? ` ${NS}-pro-corner` : ""}`; c.style.animationDelay = `${i*28}ms`; document.body.appendChild(c); return c; });
-    const label = document.createElement("div"); label.className = `${NS}-sel-label${HOST.isExtension ? ` ${NS}-pro-selection-label` : ""}`; label.textContent = elementLabel(el);
+    const box = document.createElement("div"); box.className = `${NS}-root ${NS}-sel-box${HOST.isExtension ? ` ${NS}-pro-selection` : ""}`;
+    const corners = [0,1,2,3].map(i => { const c = document.createElement("div"); c.className = `${NS}-root ${NS}-sel-corner${HOST.isExtension ? ` ${NS}-pro-corner` : ""}`; c.style.animationDelay = `${i*28}ms`; mountSelectorSurface(c); return c; });
+    const label = document.createElement("div"); label.className = `${NS}-root ${NS}-sel-label${HOST.isExtension ? ` ${NS}-pro-selection-label` : ""}`; label.textContent = elementLabel(el);
     const annotateBtn = document.createElement("button");
     annotateBtn.className = `${NS}-root ${NS}-annotate-btn${HOST.isExtension ? ` ${NS}-pro-annotate` : ""}`; annotateBtn.title = t("addInstruction");
     annotateBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -152,7 +152,8 @@
     markdownBtn.className = `${NS}-root ${NS}-annotate-btn ${NS}-markdown-btn${HOST.isExtension ? ` ${NS}-pro-annotate` : ""}`; markdownBtn.title = t("copyMarkdown");
     markdownBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>';
     markdownBtn.onclick = (e) => { e.stopPropagation(); e.preventDefault(); copyAsMarkdown([el]); };
-    document.body.appendChild(box); document.body.appendChild(label); document.body.appendChild(annotateBtn); document.body.appendChild(markdownBtn);
+    mountSelectorSurface(box); mountSelectorSurface(label); mountSelectorSurface(annotateBtn); mountSelectorSurface(markdownBtn);
+    scheduleSelectorLayerRefresh();
     selOverlays.set(aiId, { box, corners, label, annotateBtn, markdownBtn }); positionSelOverlay(el);
   }
   function positionSelOverlay(el) {
@@ -206,20 +207,14 @@
   }
 
   function handleKeyDown(e) {
-    if (isEditorElement(e.target)&&(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")) return;
+    // Selector owns its shortcuts while selection is running, even when the
+    // page focus sits in an input/editor. Only Selector's own form controls
+    // keep native typing behavior.
+    if (isEditorElement(e.target) && isTypingTarget(e.target)) return;
     // The document listener runs in capture phase. Let the settings recorder
     // consume its keystroke before any configured page action can fire.
     if (e.target && e.target.closest && e.target.closest(`.${NS}-shortcut-record`)) return;
     const mod=e.metaKey||e.ctrlKey;
-    if(e.key==="Escape"){
-      e.preventDefault();
-      if(revPanel) closeRevPromptResult();
-      else if(activePopover) removeAnnotationPopover();
-      else if(settingsOpen) closeSettings();
-      else if(selectedElements.length>0){ pushHistory(); clearSelection(); updateTags(); }
-      else togglePaused();
-      return;
-    }
     // Pro keeps the three page actions in MAIN world so they can be changed
     // without Chrome's global command registry. The free bookmarklet does not
     // opt into HOST.pageShortcuts and therefore keeps its historical keys.
@@ -227,6 +222,20 @@
       if (shortcutMatches(e, settings.shortcutCopyContext) && (selectedElements.length > 0 || pendingGenPrompt)) { e.preventDefault(); copyPrompt(); return; }
       if (shortcutMatches(e, settings.shortcutScreenshotContext) && selectedElements.length > 0) { e.preventDefault(); captureScreenshot({ text: buildPromptText() }); return; }
       if (shortcutMatches(e, settings.shortcutMarkdown)) { e.preventDefault(); copyAsMarkdown(); return; }
+    }
+    if (HOST.pageShortcuts !== true && e.code === PAUSE_SHORTCUT_KEY && !mod && !e.altKey && !e.shiftKey && !e.repeat) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      togglePaused();
+      return;
+    }
+    if(e.key==="Escape"){
+      e.preventDefault();
+      if(revPanel) closeRevPromptResult();
+      else if(activePopover) removeAnnotationPopover();
+      else if(settingsOpen) closeSettings();
+      else if(selectedElements.length>0){ pushHistory(); clearSelection(); updateTags(); }
+      return;
     }
     // ⌘C also works with NO selection while a result panel is open (⌘M with
     // no selection falls back to the page body, so there may be nothing

@@ -30,6 +30,9 @@
   // Cross-link targets for the settings-panel promo (bookmarklet ⇄ Pro extension).
   const EXT_LANDING_URL = "https://selector-pro.org/";
   const BOOKMARKLET_URL = "https://oil-oil.github.io/selector/";
+  // Keep the bookmarklet's pause behavior and visible shortcut hint sourced
+  // from one value so they cannot drift apart again.
+  const PAUSE_SHORTCUT_KEY = "F2";
 
   // ── i18n ─────────────────────────────────────────────────────
   const DICT = {
@@ -50,7 +53,7 @@
       shortcutCopyContext:"Copy context", shortcutCopyContextDesc:"Copy the selected elements and page context",
       shortcutScreenshotContext:"Screenshot + context", shortcutScreenshotContextDesc:"Copy a PNG screenshot with the selected context",
       shortcutMarkdown:"Markdown", shortcutMarkdownDesc:"Copy the selected content as Markdown",
-      shortcutRecordHint:"Press a key combination with Mod or Alt. Esc cancels; Backspace/Delete clears.", shortcutDuplicate:"That shortcut is already assigned.", shortcutInvalid:"Use Mod or Alt plus one key.", shortcutCleared:"Not set",
+      shortcutRecordHint:"Press a shortcut. Single keys and combinations are supported; Delete clears.", shortcutDuplicate:"That shortcut is already assigned.", shortcutInvalid:"Typing keys need Command, Control, or Alt.", shortcutCleared:"Not set",
       shortcutUnassigned:"Not set", shortcutSet:"Set", shortcutChange:"Change",
       proPromoTitle:"Selector Pro", proPromoDesc:"Always one shortcut away. Stays active across tabs, captures complete elements without dialogs, and syncs your settings.", proPromoCta:"Get the extension →",
       freePromoTitle:"Free bookmarklet", freePromoDesc:"No install — drag a bookmark, use on any page.", freePromoCta:"Open on GitHub →",
@@ -76,7 +79,7 @@
       shortcutCopyContext:"\u590d\u5236\u4e0a\u4e0b\u6587", shortcutCopyContextDesc:"\u590d\u5236\u5df2\u9009\u5143\u7d20\u548c\u9875\u9762\u4e0a\u4e0b\u6587",
       shortcutScreenshotContext:"\u622a\u56fe + \u4e0a\u4e0b\u6587", shortcutScreenshotContextDesc:"\u590d\u5236\u5e26\u5df2\u9009\u4e0a\u4e0b\u6587\u7684 PNG \u622a\u56fe",
       shortcutMarkdown:"Markdown", shortcutMarkdownDesc:"\u5c06\u5df2\u9009\u5185\u5bb9\u590d\u5236\u4e3a Markdown",
-      shortcutRecordHint:"\u8bf7\u6309\u5305\u542b Mod \u6216 Alt \u7684\u5feb\u6377\u952e\u3002Esc \u53d6\u6d88\uff1bBackspace/Delete \u6e05\u9664\u3002", shortcutDuplicate:"\u8be5\u5feb\u6377\u952e\u5df2\u5206\u914d\u3002", shortcutInvalid:"\u8bf7\u4f7f\u7528 Mod \u6216 Alt + \u4e00\u4e2a\u6309\u952e\u3002", shortcutCleared:"\u672a\u8bbe\u7f6e",
+      shortcutRecordHint:"\u8bf7\u6309\u4e0b\u5feb\u6377\u952e\u3002\u652f\u6301\u5355\u952e\u548c\u7ec4\u5408\u952e\uff1bDelete \u6e05\u9664\u3002", shortcutDuplicate:"\u8be5\u5feb\u6377\u952e\u5df2\u5206\u914d\u3002", shortcutInvalid:"\u5b57\u6bcd\u3001\u6570\u5b57\u548c\u7b26\u53f7\u952e\u9700\u642d\u914d Command\u3001Control \u6216 Alt\u3002", shortcutCleared:"\u672a\u8bbe\u7f6e",
       shortcutUnassigned:"\u672a\u8bbe\u7f6e", shortcutSet:"\u8bbe\u7f6e", shortcutChange:"\u4fee\u6539",
       proPromoTitle:"Selector Pro", proPromoDesc:"\u968f\u65f6\u4e00\u952e\u5524\u8d77\u3002\u5207\u6362\u6807\u7b7e\u4ecd\u4fdd\u6301\u5f00\u542f\u3001\u96f6\u5f39\u7a97\u5b8c\u6574\u622a\u56fe\u3001\u8bbe\u7f6e\u81ea\u52a8\u540c\u6b65\u3002", proPromoCta:"\u83b7\u53d6\u6d4f\u89c8\u5668\u6269\u5c55 \u2192",
       freePromoTitle:"\u514d\u8d39\u4e66\u7b7e\u7248", freePromoDesc:"\u514d\u5b89\u88c5 \u2014\u2014 \u62d6\u4e00\u4e2a\u4e66\u7b7e\uff0c\u4efb\u610f\u9875\u9762\u53ef\u7528\u3002", freePromoCta:"\u5728 GitHub \u6253\u5f00 \u2192",
@@ -132,6 +135,9 @@
     if (/^(Space|Enter|Tab|Escape|Backspace|Delete|Insert|Home|End|PageUp|PageDown|Arrow(?:Up|Down|Left|Right)|[.,/;'\\[\\]\\-=`])$/i.test(raw)) return raw.length === 1 ? raw : raw[0].toUpperCase() + raw.slice(1);
     return "";
   }
+  function allowsSingleKeyShortcut(key) {
+    return /^(?:Escape|F(?:[1-9]|1[0-2])|Space|Enter|Tab|Insert|Home|End|PageUp|PageDown|Arrow(?:Up|Down|Left|Right))$/.test(key);
+  }
   function normalizeShortcutBinding(value) {
     if (!value) return "";
     const parts = String(value).split("+").map(part => part.trim()).filter(Boolean);
@@ -143,7 +149,7 @@
       else if (!key) key = normalizeShortcutKey(part);
       else return "";
     }
-    if (!key || (!mod && !alt)) return "";
+    if (!key || (!mod && !alt && !allowsSingleKeyShortcut(key))) return "";
     return (mod ? "Mod+" : "") + (alt ? "Alt+" : "") + (shift ? "Shift+" : "") + key;
   }
   function shortcutFromEvent(event) {
@@ -151,7 +157,7 @@
     // `event.code` keeps letter/number shortcuts layout-independent, while
     // punctuation codes such as `BracketLeft` need the printable `event.key`.
     const key = normalizeShortcutKey(event.code) || normalizeShortcutKey(event.key);
-    if (!key || (!event.metaKey && !event.ctrlKey && !event.altKey)) return "";
+    if (!key || (!event.metaKey && !event.ctrlKey && !event.altKey && !allowsSingleKeyShortcut(key))) return "";
     return normalizeShortcutBinding(
       (event.metaKey || event.ctrlKey ? "Mod+" : "") +
       (event.altKey ? "Alt+" : "") +
@@ -169,7 +175,8 @@
 
   // ── State ────────────────────────────────────────────────────
   let selectedElements = [], chatPanel = null, hoverBox = null, aiIdCounter = 0;
-  let rafPending = false, lastMoveTarget = null, minimized = false, paused = false;
+  let rafPending = false, layerRafPending = false, lastMoveTarget = null, minimized = false, paused = false;
+  let layerHost = null;
   const selOverlays = new Map(), annotations = new Map(), listeners = [];
   let domObserver = null;
   let dragState = null, wasJustDragging = false, activePopover = null;
@@ -203,11 +210,16 @@
     // Keep newly-added page elements addressable for click, marquee and undo.
     try {
       domObserver = new MutationObserver(records => {
+        let addedPageContent = false;
         for (const record of records) {
           for (const node of record.addedNodes) {
-            if (node && node.nodeType === 1 && !isEditorElement(node)) assignAiIds(node);
+            if (node && node.nodeType === 1 && !isEditorElement(node)) {
+              assignAiIds(node);
+              addedPageContent = true;
+            }
           }
         }
+        if (addedPageContent) scheduleSelectorLayerRefresh();
       });
       domObserver.observe(document.documentElement, { childList: true, subtree: true });
     } catch (_) {}
@@ -218,6 +230,7 @@
       window.__SELECTOR_DESTROY__ = destroy;
       window.__SELECTOR_ON_REACTIVATE__ = function () {
         try {
+          bringSelectorLayerToFront();
           if (minimized) toggleMinimize();
           if (paused) togglePaused();
         } catch (_) {}
@@ -278,8 +291,13 @@
     try { if (typeof closeRevPromptResult === "function") closeRevPromptResult(); } catch (_) {}
     if (hoverBox) hoverBox.remove();
     if (chatPanel) chatPanel.remove();
+    if (layerHost) {
+      try { if (layerHost.matches(":popover-open")) layerHost.hidePopover(); } catch (_) {}
+      layerHost.remove();
+    }
     hoverBox = null;
     chatPanel = null;
+    layerHost = null;
     try {
       if (window.__SELECTOR_DESTROY__ === destroy) delete window.__SELECTOR_DESTROY__;
       delete window.__SELECTOR_ON_REACTIVATE__;
@@ -300,5 +318,58 @@
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
     let node; while ((node = walker.nextNode())) { if (isEditorElement(node)) continue; if (!node.hasAttribute(AI_ID)) node.setAttribute(AI_ID, `el-${aiIdCounter++}`); }
   }
-  function isEditorElement(el) { return el && el.closest && !!el.closest(`.${NS}-root`); }
+  function isEditorElement(el) { return el && el.closest && !!el.closest(`.${NS}-root, .${NS}-layer-host`); }
+  function isTypingTarget(el) {
+    return !!(el && (
+      (el.closest && el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) ||
+      el.isContentEditable
+    ));
+  }
+  function ensureSelectorLayerHost() {
+    if (layerHost && layerHost.isConnected) return layerHost;
+    layerHost = document.createElement("div");
+    layerHost.className = `${NS}-layer-host`;
+    if (typeof layerHost.showPopover === "function") layerHost.setAttribute("popover", "manual");
+    (document.documentElement || document.body).appendChild(layerHost);
+    try { if (typeof layerHost.showPopover === "function") layerHost.showPopover(); } catch (_) {}
+    return layerHost;
+  }
+  function bringSelectorLayerToFront() {
+    const host = ensureSelectorLayerHost();
+    if (typeof host.showPopover === "function") {
+      try {
+        if (host.matches(":popover-open")) host.hidePopover();
+        host.showPopover();
+        return;
+      } catch (_) {}
+    }
+    const root = document.documentElement || document.body;
+    if (host.parentNode === root) root.appendChild(host);
+  }
+  function mountSelectorSurface(surface) {
+    ensureSelectorLayerHost().appendChild(surface);
+    bringSelectorLayerToFront();
+    return surface;
+  }
+  function scheduleSelectorLayerRefresh() {
+    if (layerRafPending) return;
+    layerRafPending = true;
+    requestAnimationFrame(() => {
+      layerRafPending = false;
+      const host = ensureSelectorLayerHost();
+      const surfaces = Array.from(document.querySelectorAll(`.${NS}-root`));
+      const overlayClasses = [`${NS}-hover-box`, `${NS}-marquee`, `${NS}-sel-box`, `${NS}-sel-corner`, `${NS}-sel-label`, `${NS}-annotate-btn`];
+      const panelClasses = [`${NS}-chat`, `${NS}-settings`, `${NS}-annotate-popover`, `${NS}-revprompt`];
+      for (const surface of surfaces) {
+        if (!overlayClasses.concat(panelClasses).some(name => surface.classList.contains(name))) {
+          host.appendChild(surface);
+        }
+      }
+      for (const name of overlayClasses.concat(panelClasses)) {
+        document.querySelectorAll(`.${name}`).forEach(surface => {
+          host.appendChild(surface);
+        });
+      }
+    });
+  }
   function byAiId(id) { return document.querySelector(`[${AI_ID}="${id}"]`); }

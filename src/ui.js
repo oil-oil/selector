@@ -15,7 +15,7 @@
     actions.appendChild(clearBtn); actions.appendChild(doneBtn); popover.appendChild(textarea); popover.appendChild(actions);
     const r = btn.getBoundingClientRect();
     popover.style.top = (r.bottom+6)+"px"; popover.style.right = Math.max(8, window.innerWidth-r.right)+"px";
-    document.body.appendChild(popover); activePopover = popover; textarea.focus();
+    mountSelectorSurface(popover); activePopover = popover; textarea.focus();
   }
   function removeAnnotationPopover() { if (activePopover) { activePopover.remove(); activePopover = null; } }
 
@@ -104,12 +104,6 @@
     button.title = t("shortcutRecordHint");
     button.addEventListener("keydown", event => {
       event.preventDefault(); event.stopPropagation();
-      if (event.key === "Escape") {
-        delete button.dataset.recording;
-        button.textContent = formatPageShortcut(settings[key]);
-        desc.textContent = t(key + "Desc");
-        return;
-      }
       if (event.key === "Backspace" || event.key === "Delete") {
         settings[key] = ""; saveSettings();
         delete button.dataset.recording;
@@ -307,7 +301,7 @@
     // Keep the in-page panel focused on daily use. Lifetime-license management
     // stays in the options page; Pro shows only the real activation shortcut.
     settingsPanel.appendChild(HOST.isExtension ? mkProSettingsSummary() : mkSettingsPromo());
-    document.body.appendChild(settingsPanel);
+    mountSelectorSurface(settingsPanel);
     refreshProSettingsSummary();
     const cr = chatPanel.getBoundingClientRect();
     settingsPanel.style.bottom = (window.innerHeight - cr.top + 4) + "px";
@@ -420,7 +414,8 @@
     // \u2318M copies rendered content as Markdown in both bookmarklet and Pro.
     items.push(`<span><kbd>${markdownShortcut}</kbd> ${t("skMarkdown")}</span>`);
     items.push(`<span><kbd>${isMacPlatform() ? "\u2318Z" : "Ctrl+Z"}</kbd> ${t("skUndo")}</span>`);
-    items.push(`<span><kbd>Esc</kbd> ${selectedElements.length ? t("skClear") : t("skPause")}</span>`);
+    if (HOST.pageShortcuts !== true) items.push(`<span><kbd>${PAUSE_SHORTCUT_KEY}</kbd> ${t("skPause")}</span>`);
+    if (selectedElements.length) items.push(`<span><kbd>Esc</kbd> ${t("skClear")}</span>`);
     // Display Chrome's current assignment, including user customization.
     if (HOST.isExtension && HOST.activationShortcut) {
       const shortcut = formatActivationShortcut(HOST.activationShortcut).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]);
@@ -458,7 +453,7 @@
           <button class="${NS}-save-btn ${NS}-hidden" type="button">Save PNG</button>
         </div>
       </div>`;
-    document.body.appendChild(chatPanel);
+    mountSelectorSurface(chatPanel);
     chatPanel.querySelector(`.${NS}-copy-btn`).onclick = () => copyPrompt();
     screenshotBtn = chatPanel.querySelector(`.${NS}-screenshot-btn`);
     screenshotBtn.onclick = () => captureScreenshot();

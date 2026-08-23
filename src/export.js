@@ -430,7 +430,7 @@
     const txt = document.createElement("div"); txt.className = `${NS}-revprompt-text`;
     body.appendChild(txt);
     revPanel.appendChild(head); revPanel.appendChild(body);
-    document.body.appendChild(revPanel);
+    mountSelectorSurface(revPanel);
     revStream = { target: "", shown: 0, el: txt, timer: null };
     positionRevPanel();
   }

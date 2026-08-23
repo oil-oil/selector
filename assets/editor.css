@@ -6,6 +6,42 @@
   line-height: 1.4;
 }
 
+/* A single top-layer host beats page stacking contexts and native dialogs.
+   The manual popover has no backdrop and never intercepts the page itself. */
+.ai-editor-layer-host {
+  all: initial !important;
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+}
+
+.ai-editor-layer-host::backdrop {
+  background: transparent !important;
+  pointer-events: none !important;
+}
+
+.ai-editor-layer-host > .ai-editor-root { pointer-events: auto; }
+.ai-editor-layer-host > .ai-editor-hover-box,
+.ai-editor-layer-host > .ai-editor-marquee,
+.ai-editor-layer-host > .ai-editor-sel-box,
+.ai-editor-layer-host > .ai-editor-sel-corner,
+.ai-editor-layer-host > .ai-editor-sel-label { pointer-events: none; }
+
+/* Every Selector surface sits at the browser's maximum author-layer depth.
+   Internal order is controlled by insertion order inside the layer host. */
+.ai-editor-root {
+  z-index: 2147483647 !important;
+}
+
 /* ── Hover box ───────────────────────────────────────────── */
 .ai-editor-hover-box {
   position: fixed;

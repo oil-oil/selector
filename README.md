@@ -30,7 +30,8 @@ Open any web page, click the **Selector** bookmark.
 | **⌘M** | Copy selected content as Markdown |
 | **⌘⇧C** | Copy selected area screenshot |
 | **⌘Z** | Undo last selection change |
-| **Esc** | Pause / resume when empty, clear selection when selected |
+| **F2** | Pause / resume element selection |
+| **Esc** | Clear the current selection or close the current popover |
 
 The copied prompt includes a compact, fact-based element summary: readable element name, stable locator, semantic location, React component info, and filtered props when available. Selector keeps long CSS selectors, layout, parent, or HTML context as fallbacks, and only includes them when the page structure makes that context useful.
 Long page URLs are split into a route plus a compact query summary, so filter-heavy local pages stay readable.
