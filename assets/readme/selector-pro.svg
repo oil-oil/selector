@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="380" viewBox="0 0 1200 380"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Selector Pro — a better Selector for everyday use</title>
+  <desc id="desc">Selector Pro stays active across tabs, captures complete elements without dialogs, and syncs settings.</desc>
+
+  <defs>
+    <linearGradient id="edge-gradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E96A4C"/>
+      <stop offset="0.5" stop-color="#D85436"/>
+      <stop offset="1" stop-color="#A83A28"/>
+    </linearGradient>
+    <clipPath id="canvas-clip">
+      <rect width="1200" height="380" rx="26"/>
+    </clipPath>
+    <clipPath id="browser-clip">
+      <rect width="396" height="284" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#canvas-clip)">
+    <rect width="1200" height="380" fill="#111110"/>
+    <rect x="0" width="17" height="380" fill="url(#edge-gradient)"/>
+    <circle cx="670" cy="52" r="188" fill="#191816"/>
+    <circle cx="692" cy="330" r="140" fill="#171614"/>
+  </g>
+
+  <g id="copy" transform="translate(66 0)">
+    <g transform="translate(0 42)">
+      <rect width="226" height="30" rx="15" fill="#282521"/>
+      <circle cx="17" cy="15" r="5" fill="#D85436"/>
+      <text x="31" y="20"
+            fill="#BDB8AF"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+            font-size="13" font-weight="700" letter-spacing="1.6">THE BETTER VERSION</text>
+    </g>
+
+    <text x="0" y="145"
+          fill="#F1EEE6"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Arial, sans-serif"
+          font-size="68" font-weight="800" letter-spacing="-3.2">Selector</text>
+
+    <g transform="translate(286 101)">
+      <rect width="102" height="44" rx="8"
+            fill="#201F1C" stroke="#D85436" stroke-width="2"/>
+      <text x="51" y="31"
+            fill="#F1EEE6" text-anchor="middle"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+            font-size="25" font-weight="750" letter-spacing="1">PRO</text>
+    </g>
+
+    <text x="0" y="192"
+          fill="#D7D3CA"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Arial, sans-serif"
+          font-size="25" font-weight="650">Always one shortcut away.</text>
+
+    <text x="0" y="237"
+          fill="#8A8780"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Arial, sans-serif"
+          font-size="18">Stays active across tabs · Complete captures · Settings sync</text>
+
+    <g transform="translate(0 283)">
+      <rect width="244" height="54" rx="10" fill="#D85436"/>
+      <text x="24" y="34"
+            fill="#FFFFFF"
+            font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Arial, sans-serif"
+            font-size="18" font-weight="750">Explore Selector Pro</text>
+      <path d="M210 21l8 6-8 6M218 27h-16"
+            fill="none" stroke="#FFFFFF" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <g id="browser-proof" transform="translate(748 48)">
+    <rect x="10" y="12" width="396" height="284" rx="18" fill="#000000" opacity="0.35"/>
+    <g clip-path="url(#browser-clip)">
+      <rect width="396" height="284" fill="#F1EEE6"/>
+      <rect width="396" height="54" fill="#D7D3CA"/>
+
+      <circle cx="22" cy="20" r="5" fill="#D85436"/>
+      <circle cx="40" cy="20" r="5" fill="#A9A49A"/>
+      <circle cx="58" cy="20" r="5" fill="#A9A49A"/>
+
+      <path d="M0 39h396" stroke="#BDB8AF" stroke-width="1"/>
+      <path d="M82 39V15a7 7 0 0 1 7-7h96a7 7 0 0 1 7 7v24"
+            fill="#F1EEE6" stroke="#BDB8AF" stroke-width="1"/>
+      <circle cx="99" cy="23" r="4" fill="#D85436"/>
+      <rect x="111" y="19" width="55" height="8" rx="4" fill="#8A8780"/>
+      <path d="M202 39V18a6 6 0 0 1 6-6h83a6 6 0 0 1 6 6v21"
+            fill="#C8C3B9" stroke="#BDB8AF" stroke-width="1"/>
+      <rect x="220" y="20" width="54" height="7" rx="3.5" fill="#A29D94"/>
+
+      <g transform="translate(28 78)">
+        <rect width="116" height="13" rx="6.5" fill="#C7C2B8"/>
+        <rect y="32" width="294" height="24" rx="7" fill="#111110"/>
+        <rect y="69" width="222" height="11" rx="5.5" fill="#BDB8AF"/>
+        <rect y="91" width="270" height="11" rx="5.5" fill="#D2CEC5"/>
+
+        <g transform="translate(0 127)">
+          <rect width="294" height="66" rx="12" fill="#FFFDF8" stroke="#D85436" stroke-width="3"/>
+          <rect x="-5" y="-5" width="10" height="10" fill="#D85436"/>
+          <rect x="289" y="-5" width="10" height="10" fill="#D85436"/>
+          <rect x="-5" y="61" width="10" height="10" fill="#D85436"/>
+          <rect x="289" y="61" width="10" height="10" fill="#D85436"/>
+          <circle cx="31" cy="33" r="14" fill="#111110"/>
+          <rect x="58" y="20" width="112" height="10" rx="5" fill="#7C7871"/>
+          <rect x="58" y="39" width="174" height="8" rx="4" fill="#C7C2B8"/>
+        </g>
+      </g>
+    </g>
+
+    <g transform="translate(251 224)">
+      <rect width="174" height="48" rx="24" fill="#111110"/>
+      <circle cx="25" cy="24" r="9" fill="none" stroke="#D85436" stroke-width="2"/>
+      <circle cx="25" cy="24" r="3" fill="#D85436"/>
+      <path d="M25 11v5M25 32v5M12 24h5M33 24h5" stroke="#8A8780" stroke-width="1.5"/>
+      <text x="47" y="29"
+            fill="#F1EEE6"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+            font-size="13" font-weight="700" letter-spacing="1.1">ACTIVE · 3 TABS</text>
+    </g>
+
+    <g transform="translate(-20 86)">
+      <rect width="64" height="42" rx="9" fill="#D85436"/>
+      <text x="32" y="28"
+            fill="#FFFFFF"
+            text-anchor="middle"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+            font-size="17" font-weight="800">F2</text>
+    </g>
+  </g>
+</svg>

@@ -2,7 +2,7 @@
   <img src="assets/readme/hero.svg" width="100%" alt="Selector — point at any web element and copy structured context for your AI coding assistant">
 </p>
 
-A bookmarklet that lets you visually select elements on any web page, add instructions, and copy a structured prompt — paste it into Claude Code, Codex, Cursor, or any AI coding assistant.
+A bookmarklet for selecting web elements and copying structured context into Claude Code, Codex, Cursor, or any AI coding assistant.
 
 https://github.com/user-attachments/assets/fb8e9271-d7e0-487f-b013-106cc4c5a40f
 
@@ -33,12 +33,11 @@ Open any web page, click the **Selector** bookmark.
 | **F2** | Pause / resume element selection |
 | **Esc** | Clear the current selection or close the current popover |
 
-The copied prompt includes a compact, fact-based element summary: readable element name, stable locator, semantic location, React component info, and filtered props when available. Selector keeps long CSS selectors, layout, parent, or HTML context as fallbacks, and only includes them when the page structure makes that context useful.
-Long page URLs are split into a route plus a compact query summary, so filter-heavy local pages stay readable.
+Copied prompts include the element name, stable locator, semantic location, and React details, with CSS, layout, parent, or HTML context added only when useful. Long URLs are reduced to the route and key query values.
 
-Enable **Sharingan mode** in settings when an element needs to be recreated with higher fidelity. In that mode, **⌘C** produces a Markdown replication report covering the document context (root CSS variables, viewport, theme), the element's identity and geometry, a sanitized DOM snapshot with same-origin images inlined as data URLs and referenced SVG sprite symbols folded in, an effective-style diff against the browser baseline (only non-default values), matched CSS rules split into normal / interactive (`:hover` / `:focus` / `:active`) / color-scheme (`prefers-color-scheme`) buckets, `@font-face` and `@keyframes` definitions for the fonts and animations the element actually uses, pseudo-elements, media assets, React fiber details, and surrounding context. Small reports are copied to the clipboard; large reports are downloaded as `.md` files automatically.
+Enable **Sharingan mode** for higher-fidelity recreation. **⌘C** then captures document context, geometry, sanitized DOM, effective styles and states, fonts, animations, media, React details, and nearby context. Small reports go to the clipboard; large ones download as `.md` files.
 
-When **Screenshot + text combined** is enabled, the main copy button and **⌘C** copy both the prompt text and selected-area screenshot together. Selector also downloads the screenshot as a PNG and appends a `~/Downloads/...png` reference to the prompt, which helps text-only AI inputs find the image.
+With **Screenshot + text combined** enabled, **⌘C** copies the prompt and selected-area screenshot, downloads the PNG, and adds its local path to the prompt for text-only AI inputs.
 
 ## Example output
 
@@ -67,7 +66,15 @@ Query: date_from=2026-05-23, date_to=2026-06-22, creator_ids ×2
 
 ## How it works
 
-The bookmarklet injects `editor.css` + the built editor payload into the current page. Everything runs client-side — no data is sent anywhere. The build step combines the `src/` editor fragments with `src/sharingan.js`, and the install page bundles that result into the bookmark, so it works offline after that.
+Selector injects its compiled assets into the current page and runs entirely client-side — no data is sent anywhere. The build bundles the editor and Sharingan mode into the bookmark, so it works offline after installation.
+
+## Selector Pro
+
+Use **[Selector Pro](https://selector-pro.org/)** for one-shortcut access across tabs, complete captures without dialogs, and synced settings.
+
+<p align="center">
+  <a href="https://selector-pro.org/"><img src="./assets/readme/selector-pro.svg" width="100%" alt="Selector Pro — a better Selector that stays active across tabs, captures complete elements without dialogs, and syncs settings"></a>
+</p>
 
 ## Development
 
