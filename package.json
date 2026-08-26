@@ -2,8 +2,26 @@
   "name": "selector",
   "version": "0.4.1",
   "private": true,
+  "bin": {
+    "selector": "bin/selector.mjs"
+  },
+  "exports": {
+    "./dev": {
+      "types": "./dev/index.d.ts",
+      "import": "./dev/index.mjs",
+      "require": "./dev/index.cjs"
+    }
+  },
+  "files": [
+    "bin",
+    "dev",
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "node scripts/build.js",
-    "check": "npm run build"
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test",
+    "prepare": "npm run build"
   }
 }
