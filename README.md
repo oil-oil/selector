@@ -14,6 +14,26 @@ https://github.com/user-attachments/assets/fb8e9271-d7e0-487f-b013-106cc4c5a40f
 
 The install page follows your browser language and includes an English / Chinese toggle.
 
+### Vite development servers
+
+Embedded development browsers do not always provide a bookmarks bar. For a
+local Vite project, the optional development integration adds a keyboard
+shortcut instead:
+
+```bash
+git clone https://github.com/oil-oil/selector.git
+cd selector
+npm link
+
+# Run once in the root of a Vite project:
+selector
+npm run dev
+```
+
+Press **Alt + Shift + S** to start or stop Selector. The full editor is loaded
+only after the shortcut is pressed. The integration uses Vite's `serve` mode,
+so `npm run build` does not inject Selector into production output.
+
 ## Usage
 
 Open any web page, click the **Selector** bookmark.
