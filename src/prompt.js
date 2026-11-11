@@ -8,7 +8,10 @@
     selectedElements.forEach((el, i) => {
       const aiId = el.getAttribute(AI_ID);
       const note = annotations.get(aiId);
-      const ctx = buildElementContext(el, i + 1, note);
+      const ctx = typeof withCleanTweaks === "function"
+        ? withCleanTweaks(el, () => buildElementContext(el, i + 1, note))
+        : buildElementContext(el, i + 1, note);
+      const styleDiff = typeof getElementStyleDiff === "function" ? getElementStyleDiff(aiId) : [];
       lines.push(`${i + 1}. ${ctx.title} <${ctx.tag}>`);
       if (ctx.selector) lines.push(`   selector: ${ctx.selector}`);
       if (ctx.locator) lines.push(`   locator: ${ctx.locator}`);
@@ -25,6 +28,9 @@
       if (ctx.parent) lines.push(`   parent: ${ctx.parent}`);
       if (ctx.outerHTML) lines.push(`   html: ${ctx.outerHTML}`);
       if (ctx.reactProps) lines.push(`   props: ${ctx.reactProps}`);
+      if (styleDiff.length) {
+        lines.push(`   styleDiff: ${styleDiff.map(d => `${d.prop}: ${d.before} -> ${d.after}`).join("; ")}`);
+      }
       if (note) lines.push(`   instruction: ${note}`);
     });
     return lines.join("\n");
