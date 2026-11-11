@@ -126,6 +126,59 @@
     showClipboardFeedback(result, requestToken);
   }
 
+  function showSendFeedback(msg, isError, detail) {
+    if (!sendBtn) return;
+    if (sendTimer) clearTimeout(sendTimer);
+    sendBtn.classList.remove(`${NS}-copy-done`, `${NS}-copy-error`);
+    sendBtn.classList.add(isError ? `${NS}-copy-error` : `${NS}-copy-done`);
+    sendBtn.textContent = msg;
+    sendBtn.title = detail || msg;
+    sendTimer = setTimeout(() => {
+      if (!sendBtn) return;
+      sendBtn.classList.remove(`${NS}-copy-done`, `${NS}-copy-error`);
+      sendBtn.textContent = t("sendWorkspace");
+      sendBtn.title = t("sendWorkspace");
+      sendTimer = null;
+    }, 2200);
+  }
+
+  async function sendToWorkspace() {
+    if (!DEV || !DEV.endpoint || sendInFlight) return;
+    const prompt = buildPromptText();
+    if (!prompt) return;
+    sendInFlight = true;
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = t("sending");
+    }
+    try {
+      const res = await fetch(DEV.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          url: location.href,
+          itemCount: selectedElements.length,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json().catch(() => ({}));
+      clearSelection();
+      selectionHistory.length = 0;
+      updateTags();
+      const batchNote = data && data.pendingBatches ? ` (#${data.pendingBatches})` : "";
+      showSendFeedback(t("sent") + batchNote, false, data && data.queuePath ? data.queuePath : "");
+    } catch (err) {
+      const detail = err ? (err.message || String(err)) : "";
+      console.warn("[Selector] Workspace send failed", err);
+      showSendFeedback(t("sendFailed"), true, detail);
+    } finally {
+      sendInFlight = false;
+      if (sendBtn) sendBtn.disabled = selectedElements.length === 0;
+    }
+  }
+
   // ── ⌘M — copy as Markdown ──────────────────────────────────
   const MARKDOWN_BLOCK_TAGS = new Set(["address","article","aside","blockquote","dd","details","div","dl","dt","figcaption","figure","footer","form","h1","h2","h3","h4","h5","h6","header","hr","li","main","nav","ol","p","pre","section","table","ul"]);
 

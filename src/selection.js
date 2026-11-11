@@ -92,7 +92,7 @@
 
   // ── Mouse handling ───────────────────────────────────────────
   function handleMouseMove(e) {
-    if (minimized || paused) return;
+    if (dormant || minimized || paused) return;
     if (dragState) {
       const dx = e.clientX - dragState.startX, dy = e.clientY - dragState.startY;
       if (!dragState.isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
@@ -111,11 +111,12 @@
     if (!rafPending) { rafPending = true; requestAnimationFrame(() => { showHover(lastMoveTarget); rafPending = false; }); }
   }
   function handleMouseDown(e) {
-    if (isEditorElement(e.target) || minimized || paused || e.button !== 0) return;
+    if (dormant || isEditorElement(e.target) || minimized || paused || e.button !== 0) return;
     if (e.shiftKey) e.preventDefault();
     dragState = { startX: e.clientX, startY: e.clientY, isDragging: false, marquee: null };
   }
   function handleMouseUp(e) {
+    if (dormant) { cancelDrag(); return; }
     if (!dragState || !dragState.isDragging) { dragState = null; return; }
     wasJustDragging = true;
     const mRect = dragState.marquee.getBoundingClientRect();
@@ -130,7 +131,7 @@
   function cancelDrag() { if (dragState && dragState.marquee) dragState.marquee.remove(); dragState = null; }
   function rectsIntersect(a, b) { return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom); }
   function handleClick(e) {
-    if (isEditorElement(e.target) || minimized || paused || wasJustDragging) return;
+    if (dormant || isEditorElement(e.target) || minimized || paused || wasJustDragging) return;
     e.preventDefault(); e.stopPropagation(); removeAnnotationPopover();
     const sel = window.getSelection(); if (sel) sel.removeAllRanges();
     pushHistory(); const el = resolveNestedTargetFromSelection(e) || resolveTarget(resolveEventTarget(e));
@@ -176,10 +177,15 @@
     if (!el.hasAttribute(AI_ID)) el.setAttribute(AI_ID, `el-${aiIdCounter++}`);
     selectedElements.push(el); createSelOverlay(el);
   }
-  function removeSelection(el) { const idx=selectedElements.indexOf(el); if(idx>=0){ const aiId=el.getAttribute(AI_ID); selectedElements.splice(idx,1); destroySelOverlay(aiId); annotations.delete(aiId); revertTweaksForAiId(aiId); } }
+  function removeSelection(el) { const idx=selectedElements.indexOf(el); if(idx>=0){ const aiId=el.getAttribute(AI_ID); selectedElements.splice(idx,1); destroySelOverlay(aiId); annotations.delete(aiId); revertTweaksForAiId(aiId); if (typeof updateDevPill === "function") updateDevPill(); } }
   function toggleElement(el) { selectedElements.includes(el) ? removeSelection(el) : addSelection(el); }
-  function clearSelection() { destroyAllOverlays(); selectedElements=[]; annotations.clear(); revertAllTweaks(); removeAnnotationPopover(); }
+  function clearSelection() { destroyAllOverlays(); selectedElements=[]; annotations.clear(); revertAllTweaks(); removeAnnotationPopover(); if (typeof updateDevPill === "function") updateDevPill(); }
   function clearUnannotatedSelections() { for (const el of selectedElements.slice()) { if (!hasElementFeedback(el.getAttribute(AI_ID))) removeSelection(el); } removeAnnotationPopover(); }
+  function pruneDisconnectedSelections() {
+    for (const el of selectedElements.slice()) {
+      if (!el || !el.isConnected) removeSelection(el);
+    }
+  }
 
   // ── History (undo) ──────────────────────────────────────────
   function pushHistory() { selectionHistory.push({ elements:[...selectedElements], annotations:new Map(annotations), tweaks:snapshotTweaksState() }); if (selectionHistory.length>30) selectionHistory.shift(); }
@@ -208,13 +214,20 @@
   }
 
   function handleKeyDown(e) {
+    // The document listener runs in capture phase. Let the settings recorder
+    // consume its keystroke before any configured page action can fire.
+    if (e.target && e.target.closest && e.target.closest(`.${NS}-shortcut-record`)) return;
+    if (DEV && shortcutMatches(e, devToggleShortcut())) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleDormant();
+      return;
+    }
+    if (dormant) return;
     // Selector owns its shortcuts while selection is running, even when the
     // page focus sits in an input/editor. Only Selector's own form controls
     // keep native typing behavior.
     if (isEditorElement(e.target) && isTypingTarget(e.target)) return;
-    // The document listener runs in capture phase. Let the settings recorder
-    // consume its keystroke before any configured page action can fire.
-    if (e.target && e.target.closest && e.target.closest(`.${NS}-shortcut-record`)) return;
     if (activePopover && isEditorElement(e.target) && e.key !== "Escape") return;
     const mod=e.metaKey||e.ctrlKey;
     // Pro keeps the three page actions in MAIN world so they can be changed

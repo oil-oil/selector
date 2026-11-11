@@ -2,8 +2,20 @@
   "name": "selector",
   "version": "0.4.1",
   "private": true,
+  "exports": {
+    "./vite": {
+      "import": "./adapters/vite.mjs",
+      "require": "./adapters/vite.js"
+    },
+    "./next": {
+      "import": "./adapters/next.mjs",
+      "require": "./adapters/next.js"
+    }
+  },
   "scripts": {
     "build": "node scripts/build.js",
-    "check": "npm run build"
+    "demo": "node scripts/demo.js",
+    "test": "node tests/dev-bridge.test.mjs",
+    "check": "npm run build && npm test"
   }
 }

@@ -221,7 +221,7 @@
       }
       const next = shortcutFromEvent(event);
       if (!next) { desc.textContent = t("shortcutInvalid"); return; }
-      const activationConflict = normalizeShortcutBinding(HOST.activationShortcut) === next;
+      const activationConflict = normalizeShortcutBinding(HOST.activationShortcut) === next || (DEV && normalizeShortcutBinding(devToggleShortcut()) === next);
       const duplicate = activationConflict || PRO_SHORTCUT_KEYS.some(other => other !== key && normalizeShortcutBinding(settings[other]) === next);
       if (duplicate) { desc.textContent = t("shortcutDuplicate"); return; }
       settings[key] = next; saveSettings();
@@ -478,6 +478,10 @@
     if (sl) sl.textContent = paused ? t("paused") : t("selecting");
     const cb = chatPanel.querySelector(`.${NS}-copy-btn`);
     if (cb && !cb.classList.contains(`${NS}-copy-done`)) setCopyButtonIdle(cb);
+    if (sendBtn && !sendBtn.classList.contains(`${NS}-copy-done`) && !sendBtn.classList.contains(`${NS}-copy-error`) && !sendInFlight) {
+      sendBtn.textContent = t("sendWorkspace");
+      sendBtn.title = t("sendWorkspace");
+    }
     if (screenshotBtn && !screenshotBtn.classList.contains(`${NS}-screenshot-done`) && !screenshotBtn.classList.contains(`${NS}-screenshot-error`))
       setScreenshotButtonIdle();
     if (saveBtn) saveBtn.textContent = t("savePng");
@@ -488,6 +492,7 @@
     const settingsBtnEl = chatPanel.querySelector('[data-action="settings"]');
     if (settingsBtnEl) settingsBtnEl.title = t("settings");
     updateShortcuts();
+    updateDevPill();
   }
 
   function copyButtonLabel() {
@@ -525,10 +530,32 @@
     if (selectedElements.length) items.push(`<span><kbd>Esc</kbd> ${t("skClear")}</span>`);
     // Display Chrome's current assignment, including user customization.
     if (HOST.isExtension && HOST.activationShortcut) {
-      const shortcut = formatActivationShortcut(HOST.activationShortcut).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]);
+      const shortcut = escapeHtml(formatActivationShortcut(HOST.activationShortcut));
       items.push(`<span><kbd>${shortcut}</kbd> ${t("skActivate")}</span>`);
+    } else if (DEV) {
+      const devSc = escapeHtml(formatPageShortcut(devToggleShortcut()));
+      items.push(`<span><kbd>${devSc}</kbd> ${t("skActivate")}</span>`);
     }
     sc.innerHTML = items.join("");
+  }
+
+  function createDevPill() {
+    if (!DEV || devPill) return;
+    devPill = document.createElement("button");
+    devPill.type = "button";
+    devPill.className = `${NS}-root ${NS}-dev-pill`;
+    devPill.onclick = (e) => { e.stopPropagation(); setDormant(false); };
+    mountSelectorSurface(devPill);
+    updateDevPill();
+  }
+
+  function updateDevPill() {
+    if (!devPill) return;
+    const count = selectedElements.length;
+    const rawSc = formatPageShortcut(devToggleShortcut());
+    const sc = escapeHtml(rawSc);
+    devPill.title = `${t("devWakeHint")} (${rawSc})`;
+    devPill.innerHTML = `<span class="${NS}-status-dot"></span><span>Selector</span>${count > 0 ? `<span class="${NS}-dev-pill-count">${count}</span>` : ""}<kbd class="${NS}-dev-pill-kbd">${sc}</kbd>`;
   }
 
   // ── Chat panel ──────────────────────────────────────────────
@@ -556,19 +583,22 @@
         <div class="${NS}-shortcuts"></div>
         <div class="${NS}-action-row">
           <button class="${NS}-copy-btn" disabled>Copy Prompt</button>
+          ${DEV && DEV.endpoint ? `<button class="${NS}-send-btn" type="button" disabled>Send to Workspace</button>` : ""}
           <button class="${NS}-screenshot-btn" disabled title="Copy Screenshot" aria-label="Copy Screenshot">${CAMERA_SVG}</button>
           <button class="${NS}-save-btn ${NS}-hidden" type="button">Save PNG</button>
         </div>
       </div>`;
     mountSelectorSurface(chatPanel);
     chatPanel.querySelector(`.${NS}-copy-btn`).onclick = () => copyPrompt();
+    sendBtn = chatPanel.querySelector(`.${NS}-send-btn`);
+    if (sendBtn) sendBtn.onclick = () => sendToWorkspace();
     screenshotBtn = chatPanel.querySelector(`.${NS}-screenshot-btn`);
     screenshotBtn.onclick = () => captureScreenshot();
     saveBtn = chatPanel.querySelector(`.${NS}-save-btn`);
     saveBtn.onclick = () => savePendingScreenshot();
     chatPanel.querySelector('[data-action="settings"]').onclick = toggleSettings;
     chatPanel.querySelector('[data-action="minimize"]').onclick = toggleMinimize;
-    chatPanel.querySelector('[data-action="close"]').onclick = destroy;
+    chatPanel.querySelector('[data-action="close"]').onclick = () => DEV ? setDormant(true) : destroy();
     makeDraggable(chatPanel, chatPanel.querySelector(`.${NS}-drag-handle`));
   }
 
@@ -610,6 +640,7 @@
     container.innerHTML = "";
     if (selectedElements.length > 0) {
       container.classList.remove(`${NS}-hidden`); copyBtn.disabled=false;
+      if (sendBtn) sendBtn.disabled = sendInFlight;
       if (screenshotBtn) screenshotBtn.disabled=false;
       for (let i=0;i<selectedElements.length;i++) {
         const el=selectedElements[i], aiId=el.getAttribute(AI_ID), tag=document.createElement("span");
@@ -628,7 +659,9 @@
       container.appendChild(clearBtn);
     } else {
       container.classList.add(`${NS}-hidden`); copyBtn.disabled=true;
+      if (sendBtn) sendBtn.disabled = true;
       if (screenshotBtn) screenshotBtn.disabled=true;
     }
     updateShortcuts();
+    updateDevPill();
   }

@@ -25,6 +25,7 @@
   // before. Each Host method is OPTIONAL: callers must always keep the original
   // logic as the fallback. Never make a path Host-only.
   const HOST = (typeof window !== "undefined" && window.__SELECTOR_HOST__) || {};
+  const DEV = (typeof window !== "undefined" && window.__SELECTOR_DEV__) || null;
   const AI_ID = "data-ai-id";
   const VERSION = "0.4.1";
   // Cross-link targets for the settings-panel promo (bookmarklet ⇄ Pro extension).
@@ -61,12 +62,14 @@
       errUnsupported:"Browser not supported", errCancelled:"Screen choice cancelled",
       errPermission:"Screen recording blocked", errClipboard:"Clipboard blocked",
       errCapture:"Screenshot failed", errEmpty:"Selected area is empty", errDownload:"File save failed",
-      tweakReset:"Reset", tweakResetAll:"Reset all",
+      sendWorkspace:"Send to Workspace", sending:"Sending\u2026", sent:"Sent", sendFailed:"Send failed",
+      tabNote:"Note", tabTweak:"Tweak", tweakReset:"Reset", tweakResetAll:"Reset all",
       tweakSpacing:"Spacing", tweakTypography:"Box & Type", tweakColors:"Colors",
       tweakPadding:"Padding", tweakMargin:"Margin", tweakGap:"Gap",
       tweakFontSize:"Font size", tweakFontWeight:"Weight", tweakRadius:"Radius",
       tweakOpacity:"Opacity", tweakWidth:"Width", tweakHeight:"Height",
       tweakColor:"Text", tweakBg:"Background", tweakAuto:"auto",
+      devWakeHint:"Press to toggle Selector", devPending:"pending",
     },
     zh: {
       selecting:"\u9009\u62e9\u4e2d", paused:"\u5df2\u6682\u505c", copyPrompt:"\u590d\u5236\u63d0\u793a\u8bcd", copyReport:"\u963f\u739b\u7279\u62c9\u65af\uff01", copyCombined:"\u590d\u5236\u56fe\u6587", copyScreenshot:"\u590d\u5236\u622a\u56fe",
@@ -93,12 +96,14 @@
       errUnsupported:"\u6d4f\u89c8\u5668\u4e0d\u652f\u6301", errCancelled:"\u5df2\u53d6\u6d88\u5c4f\u5e55\u9009\u62e9",
       errPermission:"\u5c4f\u5e55\u5f55\u5236\u6743\u9650\u53d7\u9650", errClipboard:"\u526a\u8d34\u677f\u6743\u9650\u53d7\u9650",
       errCapture:"\u622a\u56fe\u5931\u8d25", errEmpty:"\u9009\u4e2d\u533a\u57df\u65e0\u6cd5\u622a\u56fe", errDownload:"\u6587\u4ef6\u4fdd\u5b58\u5931\u8d25",
-      tweakReset:"\u91cd\u7f6e", tweakResetAll:"\u5168\u90e8\u91cd\u7f6e",
+      sendWorkspace:"\u6295\u9012\u5230\u5de5\u4f5c\u533a", sending:"\u6295\u9012\u4e2d\u2026", sent:"\u5df2\u6295\u9012", sendFailed:"\u6295\u9012\u5931\u8d25",
+      tabNote:"\u6279\u6ce8", tabTweak:"\u5fae\u8c03", tweakReset:"\u91cd\u7f6e", tweakResetAll:"\u5168\u90e8\u91cd\u7f6e",
       tweakSpacing:"\u95f4\u8ddd", tweakTypography:"\u5c3a\u5bf8\u4e0e\u5b57\u4f53", tweakColors:"\u989c\u8272",
       tweakPadding:"\u5185\u8fb9\u8ddd", tweakMargin:"\u5916\u8fb9\u8ddd", tweakGap:"\u95f4\u9699",
       tweakFontSize:"\u5b57\u53f7", tweakFontWeight:"\u5b57\u91cd", tweakRadius:"\u5706\u89d2",
       tweakOpacity:"\u900f\u660e\u5ea6", tweakWidth:"\u5bbd\u5ea6", tweakHeight:"\u9ad8\u5ea6",
       tweakColor:"\u6587\u5b57\u8272", tweakBg:"\u80cc\u666f\u8272", tweakAuto:"auto",
+      devWakeHint:"\u70b9\u51fb\u5524\u8d77 / \u6536\u8d77 Selector", devPending:"\u5f85\u6295\u9012",
     }
   };
   let lang = "en";
@@ -106,6 +111,11 @@
   // else follow the browser's UI language so i18n consistently matches the user.
   try { lang = HOST.initialLang || localStorage.getItem(NS + "-lang") || (/^zh\b/i.test(navigator.language || "") ? "zh" : "en"); } catch(_) {}
   function t(k) { return (DICT[lang] && DICT[lang][k]) || DICT.en[k] || k; }
+  function escapeHtml(str) {
+    return String(str || "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[ch]);
+  }
 
   // ── Settings ─────────────────────────────────────────────────
   const DEFAULTS = { combined:false, sharingan:false };
@@ -186,14 +196,15 @@
   }
 
   // ── State ────────────────────────────────────────────────────
-  let selectedElements = [], chatPanel = null, hoverBox = null, aiIdCounter = 0;
+  let selectedElements = [], chatPanel = null, hoverBox = null, devPill = null, aiIdCounter = 0;
   let rafPending = false, layerRafPending = false, lastMoveTarget = null, minimized = false, paused = false;
+  let dormant = !!(DEV && DEV.startDormant !== false);
   let layerHost = null;
   const selOverlays = new Map(), annotations = new Map(), tweaks = new Map(), listeners = [];
-  let domObserver = null;
+  let domObserver = null, spaNavCleanup = null;
   let dragState = null, wasJustDragging = false, activePopover = null;
   const selectionHistory = [];
-  let screenshotBtn = null, saveBtn = null, pendingScreenshotSave = null, settingsOpen = false, settingsPanel = null;
+  let screenshotBtn = null, saveBtn = null, sendBtn = null, sendInFlight = false, sendTimer = null, pendingScreenshotSave = null, settingsOpen = false, settingsPanel = null;
   let revPanel = null, pendingGenPrompt = null, pendingResultCopyKey = null, revStream = null;
 
   function on(target, type, fn, capture) {
@@ -201,19 +212,92 @@
     listeners.push({ target, type, fn, capture });
   }
 
+  function devToggleShortcut() {
+    return (DEV && DEV.toggleShortcut) || "Alt+S";
+  }
+
+  function setDormant(next) {
+    const nextState = !!next;
+    if (dormant === nextState) return;
+    dormant = nextState;
+    const host = ensureSelectorLayerHost();
+    host.classList.toggle(`${NS}-dormant`, dormant);
+    if (dormant) {
+      showHover(null);
+      cancelDrag();
+      removeAnnotationPopover();
+      closeSettings();
+      if (typeof closeRevPromptResult === "function") closeRevPromptResult();
+    } else {
+      assignAiIds(document.body);
+      pruneDisconnectedSelections();
+      if (minimized) toggleMinimize();
+      if (paused) togglePaused();
+      bringSelectorLayerToFront();
+      positionAllOverlays();
+      updateTags();
+    }
+    if (typeof updateDevPill === "function") updateDevPill();
+  }
+
+  function toggleDormant() {
+    setDormant(!dormant);
+  }
+
+  function installSpaNavigationHook() {
+    if (spaNavCleanup || !DEV) return;
+    const origPush = history.pushState;
+    const origReplace = history.replaceState;
+    let lastHref = location.href;
+    let lastPath = location.pathname;
+    const notifyIfChanged = () => {
+      if (location.href === lastHref) return;
+      const pathChanged = location.pathname !== lastPath;
+      lastHref = location.href;
+      lastPath = location.pathname;
+      const hasDisconnectedSelection = selectedElements.some(el => !el || !el.isConnected);
+      if (!pathChanged && !hasDisconnectedSelection) return;
+      if (typeof window.__SELECTOR_ON_NAVIGATION__ === "function") {
+        window.__SELECTOR_ON_NAVIGATION__();
+      }
+    };
+    const patchedPush = function () {
+      const res = origPush.apply(this, arguments);
+      setTimeout(notifyIfChanged, 0);
+      return res;
+    };
+    const patchedReplace = function () {
+      const res = origReplace.apply(this, arguments);
+      setTimeout(notifyIfChanged, 0);
+      return res;
+    };
+    history.pushState = patchedPush;
+    history.replaceState = patchedReplace;
+    window.addEventListener("popstate", notifyIfChanged);
+    spaNavCleanup = () => {
+      if (history.pushState === patchedPush) history.pushState = origPush;
+      if (history.replaceState === patchedReplace) history.replaceState = origReplace;
+      window.removeEventListener("popstate", notifyIfChanged);
+      spaNavCleanup = null;
+    };
+  }
+
   // ── Init ─────────────────────────────────────────────────────
   function init() {
-    assignAiIds(document.body);
+    if (!dormant) assignAiIds(document.body);
     createHoverBox();
     createChatPanel();
+    if (DEV && typeof createDevPill === "function") createDevPill();
+    ensureSelectorLayerHost().classList.toggle(`${NS}-dormant`, dormant);
     on(document, "mousedown", handleMouseDown, true);
     on(document, "click", handleClick, true);
     on(document, "mousemove", handleMouseMove, true);
     on(document, "mouseup", handleMouseUp, true);
-    on(document, "mouseleave", () => { showHover(null); cancelDrag(); }, true);
+    on(document, "mouseleave", () => { if (dormant) return; showHover(null); cancelDrag(); }, true);
     on(document, "keydown", handleKeyDown, true);
     let repositionRaf = false;
     const scheduleReposition = () => {
+      if (dormant) return;
       if (!repositionRaf) { repositionRaf = true; requestAnimationFrame(() => { positionAllOverlays(); repositionRaf = false; }); }
     };
     on(window, "scroll", scheduleReposition, true);
@@ -222,6 +306,7 @@
     // Keep newly-added page elements addressable for click, marquee and undo.
     try {
       domObserver = new MutationObserver(records => {
+        if (dormant) return;
         let addedPageContent = false;
         for (const record of records) {
           for (const node of record.addedNodes) {
@@ -235,13 +320,16 @@
       });
       domObserver.observe(document.documentElement, { childList: true, subtree: true });
     } catch (_) {}
+    if (DEV) installSpaNavigationHook();
     applyI18n();
+    if (typeof updateDevPill === "function") updateDevPill();
     // Extension hooks: Pro can destroy/resume this instance after SPA nav or
     // a second activation shortcut without leaving orphan listeners behind.
     try {
       window.__SELECTOR_DESTROY__ = destroy;
       window.__SELECTOR_ON_REACTIVATE__ = function () {
         try {
+          if (dormant) setDormant(false);
           bringSelectorLayerToFront();
           if (minimized) toggleMinimize();
           if (paused) togglePaused();
@@ -258,9 +346,11 @@
           if (typeof clearPendingScreenshotSave === "function") clearPendingScreenshotSave();
           clearSelection();
           selectionHistory.length = 0;
-          if (minimized) toggleMinimize();
-          if (paused) togglePaused();
-          assignAiIds(document.body);
+          if (!dormant) {
+            if (minimized) toggleMinimize();
+            if (paused) togglePaused();
+            assignAiIds(document.body);
+          }
           updateTags();
         } catch (_) {}
       };
@@ -297,19 +387,24 @@
   // ── Destroy ──────────────────────────────────────────────────
   function destroy() {
     if (typeof revertAllTweaks === "function") revertAllTweaks();
+    if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
     for (const { target, type, fn, capture } of listeners) target.removeEventListener(type, fn, capture);
     listeners.length = 0;
+    if (spaNavCleanup) spaNavCleanup();
     if (domObserver) { try { domObserver.disconnect(); } catch (_) {} domObserver = null; }
     destroyAllOverlays(); removeAnnotationPopover(); closeSettings();
     try { if (typeof closeRevPromptResult === "function") closeRevPromptResult(); } catch (_) {}
     if (hoverBox) hoverBox.remove();
     if (chatPanel) chatPanel.remove();
+    if (devPill) devPill.remove();
     if (layerHost) {
       try { if (layerHost.matches(":popover-open")) layerHost.hidePopover(); } catch (_) {}
       layerHost.remove();
     }
     hoverBox = null;
     chatPanel = null;
+    devPill = null;
+    sendBtn = null;
     layerHost = null;
     try {
       if (window.__SELECTOR_DESTROY__ === destroy) delete window.__SELECTOR_DESTROY__;
@@ -372,7 +467,7 @@
       const host = ensureSelectorLayerHost();
       const surfaces = Array.from(document.querySelectorAll(`.${NS}-root`));
       const overlayClasses = [`${NS}-hover-box`, `${NS}-marquee`, `${NS}-sel-box`, `${NS}-sel-corner`, `${NS}-sel-label`, `${NS}-annotate-btn`];
-      const panelClasses = [`${NS}-chat`, `${NS}-settings`, `${NS}-annotate-popover`, `${NS}-revprompt`];
+      const panelClasses = [`${NS}-chat`, `${NS}-settings`, `${NS}-annotate-popover`, `${NS}-revprompt`, `${NS}-dev-pill`];
       for (const surface of surfaces) {
         if (!overlayClasses.concat(panelClasses).some(name => surface.classList.contains(name))) {
           host.appendChild(surface);
