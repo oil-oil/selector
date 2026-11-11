@@ -166,7 +166,7 @@
     ov.label.style.top=toolbarTop+"px"; ov.label.style.left=(r.left-pad)+"px";
     ov.markdownBtn.style.top=toolbarTop+"px"; ov.markdownBtn.style.left=(r.right+pad-20)+"px";
     ov.annotateBtn.style.top=toolbarTop+"px"; ov.annotateBtn.style.left=(r.right+pad-44)+"px";
-    ov.annotateBtn.classList.toggle(`${NS}-has-note`, annotations.has(aiId));
+    ov.annotateBtn.classList.toggle(`${NS}-has-note`, hasElementFeedback(aiId));
   }
   function positionAllOverlays() { for (const el of selectedElements) positionSelOverlay(el); }
   function destroySelOverlay(aiId) { const ov=selOverlays.get(aiId); if(!ov)return; ov.box.remove(); ov.corners.forEach(c=>c.remove()); ov.label.remove(); ov.annotateBtn.remove(); ov.markdownBtn.remove(); selOverlays.delete(aiId); }
@@ -176,17 +176,18 @@
     if (!el.hasAttribute(AI_ID)) el.setAttribute(AI_ID, `el-${aiIdCounter++}`);
     selectedElements.push(el); createSelOverlay(el);
   }
-  function removeSelection(el) { const idx=selectedElements.indexOf(el); if(idx>=0){ selectedElements.splice(idx,1); destroySelOverlay(el.getAttribute(AI_ID)); annotations.delete(el.getAttribute(AI_ID)); } }
+  function removeSelection(el) { const idx=selectedElements.indexOf(el); if(idx>=0){ const aiId=el.getAttribute(AI_ID); selectedElements.splice(idx,1); destroySelOverlay(aiId); annotations.delete(aiId); revertTweaksForAiId(aiId); } }
   function toggleElement(el) { selectedElements.includes(el) ? removeSelection(el) : addSelection(el); }
-  function clearSelection() { destroyAllOverlays(); selectedElements=[]; annotations.clear(); removeAnnotationPopover(); }
-  function clearUnannotatedSelections() { for (const el of selectedElements.slice()) { if (!annotations.has(el.getAttribute(AI_ID))) removeSelection(el); } removeAnnotationPopover(); }
+  function clearSelection() { destroyAllOverlays(); selectedElements=[]; annotations.clear(); revertAllTweaks(); removeAnnotationPopover(); }
+  function clearUnannotatedSelections() { for (const el of selectedElements.slice()) { if (!hasElementFeedback(el.getAttribute(AI_ID))) removeSelection(el); } removeAnnotationPopover(); }
 
   // ── History (undo) ──────────────────────────────────────────
-  function pushHistory() { selectionHistory.push({ elements:[...selectedElements], annotations:new Map(annotations) }); if (selectionHistory.length>30) selectionHistory.shift(); }
+  function pushHistory() { selectionHistory.push({ elements:[...selectedElements], annotations:new Map(annotations), tweaks:snapshotTweaksState() }); if (selectionHistory.length>30) selectionHistory.shift(); }
   function undo() {
     if (!selectionHistory.length) return; const state=selectionHistory.pop();
     destroyAllOverlays(); removeAnnotationPopover(); selectedElements=state.elements;
     annotations.clear(); for (const [k,v] of state.annotations) annotations.set(k,v);
+    restoreTweaksSnapshot(state.tweaks);
     for (const el of selectedElements) createSelOverlay(el); updateTags();
   }
 
@@ -214,6 +215,7 @@
     // The document listener runs in capture phase. Let the settings recorder
     // consume its keystroke before any configured page action can fire.
     if (e.target && e.target.closest && e.target.closest(`.${NS}-shortcut-record`)) return;
+    if (activePopover && isEditorElement(e.target) && e.key !== "Escape") return;
     const mod=e.metaKey||e.ctrlKey;
     // Pro keeps the three page actions in MAIN world so they can be changed
     // without Chrome's global command registry. The free bookmarklet does not

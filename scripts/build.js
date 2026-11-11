@@ -7,6 +7,7 @@ const distAssets = path.join(dist, "assets");
 
 const editorParts = [
   "core.js",
+  "tweak.js",
   "selection.js",
   "ui.js",
   "export.js",
@@ -18,8 +19,8 @@ const editorPayloadParts = [
     output: `payload-${String(index).padStart(2, "0")}.css`,
     source: path.join("src", file),
   })),
-  { output: "payload-05.css", source: path.join("src", "sharingan.js"), stripHeader: true },
-  { output: "payload-06.css", source: path.join("src", "context.js") },
+  { output: "payload-06.css", source: path.join("src", "sharingan.js"), stripHeader: true },
+  { output: "payload-07.css", source: path.join("src", "context.js") },
 ];
 
 function read(file) {

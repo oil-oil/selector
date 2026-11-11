@@ -61,6 +61,12 @@
       errUnsupported:"Browser not supported", errCancelled:"Screen choice cancelled",
       errPermission:"Screen recording blocked", errClipboard:"Clipboard blocked",
       errCapture:"Screenshot failed", errEmpty:"Selected area is empty", errDownload:"File save failed",
+      tweakReset:"Reset", tweakResetAll:"Reset all",
+      tweakSpacing:"Spacing", tweakTypography:"Box & Type", tweakColors:"Colors",
+      tweakPadding:"Padding", tweakMargin:"Margin", tweakGap:"Gap",
+      tweakFontSize:"Font size", tweakFontWeight:"Weight", tweakRadius:"Radius",
+      tweakOpacity:"Opacity", tweakWidth:"Width", tweakHeight:"Height",
+      tweakColor:"Text", tweakBg:"Background", tweakAuto:"auto",
     },
     zh: {
       selecting:"\u9009\u62e9\u4e2d", paused:"\u5df2\u6682\u505c", copyPrompt:"\u590d\u5236\u63d0\u793a\u8bcd", copyReport:"\u963f\u739b\u7279\u62c9\u65af\uff01", copyCombined:"\u590d\u5236\u56fe\u6587", copyScreenshot:"\u590d\u5236\u622a\u56fe",
@@ -87,6 +93,12 @@
       errUnsupported:"\u6d4f\u89c8\u5668\u4e0d\u652f\u6301", errCancelled:"\u5df2\u53d6\u6d88\u5c4f\u5e55\u9009\u62e9",
       errPermission:"\u5c4f\u5e55\u5f55\u5236\u6743\u9650\u53d7\u9650", errClipboard:"\u526a\u8d34\u677f\u6743\u9650\u53d7\u9650",
       errCapture:"\u622a\u56fe\u5931\u8d25", errEmpty:"\u9009\u4e2d\u533a\u57df\u65e0\u6cd5\u622a\u56fe", errDownload:"\u6587\u4ef6\u4fdd\u5b58\u5931\u8d25",
+      tweakReset:"\u91cd\u7f6e", tweakResetAll:"\u5168\u90e8\u91cd\u7f6e",
+      tweakSpacing:"\u95f4\u8ddd", tweakTypography:"\u5c3a\u5bf8\u4e0e\u5b57\u4f53", tweakColors:"\u989c\u8272",
+      tweakPadding:"\u5185\u8fb9\u8ddd", tweakMargin:"\u5916\u8fb9\u8ddd", tweakGap:"\u95f4\u9699",
+      tweakFontSize:"\u5b57\u53f7", tweakFontWeight:"\u5b57\u91cd", tweakRadius:"\u5706\u89d2",
+      tweakOpacity:"\u900f\u660e\u5ea6", tweakWidth:"\u5bbd\u5ea6", tweakHeight:"\u9ad8\u5ea6",
+      tweakColor:"\u6587\u5b57\u8272", tweakBg:"\u80cc\u666f\u8272", tweakAuto:"auto",
     }
   };
   let lang = "en";
@@ -177,7 +189,7 @@
   let selectedElements = [], chatPanel = null, hoverBox = null, aiIdCounter = 0;
   let rafPending = false, layerRafPending = false, lastMoveTarget = null, minimized = false, paused = false;
   let layerHost = null;
-  const selOverlays = new Map(), annotations = new Map(), listeners = [];
+  const selOverlays = new Map(), annotations = new Map(), tweaks = new Map(), listeners = [];
   let domObserver = null;
   let dragState = null, wasJustDragging = false, activePopover = null;
   const selectionHistory = [];
@@ -284,6 +296,7 @@
 
   // ── Destroy ──────────────────────────────────────────────────
   function destroy() {
+    if (typeof revertAllTweaks === "function") revertAllTweaks();
     for (const { target, type, fn, capture } of listeners) target.removeEventListener(type, fn, capture);
     listeners.length = 0;
     if (domObserver) { try { domObserver.disconnect(); } catch (_) {} domObserver = null; }

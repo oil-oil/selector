@@ -1273,3 +1273,240 @@
   background: #eee;
   border-color: #bbb;
 }
+
+/* ── Unified Draggable Note + Tweak Popover ───────────────── */
+.ai-editor-hidden {
+  display: none !important;
+}
+
+.ai-editor-annotate-popover.ai-editor-popover-wide {
+  width: 288px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ai-editor-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 8px 7px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  cursor: grab;
+  user-select: none;
+}
+
+.ai-editor-popover-header:active {
+  cursor: grabbing;
+}
+
+.ai-editor-popover-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-editor-popover-grip {
+  color: #bbb;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ai-editor-popover-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ai-editor-popover-note {
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ai-editor-tweak-panel {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.ai-editor-tweak-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ai-editor-tweak-elname {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-editor-tweak-reset-all {
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  color: #555;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ai-editor-tweak-reset-all:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #111;
+}
+
+.ai-editor-tweak-reset-all:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ai-editor-tweak-section {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 7px;
+  margin-top: 7px;
+}
+
+.ai-editor-tweak-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.ai-editor-tweak-section-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  margin-bottom: 5px;
+}
+
+.ai-editor-tweak-block {
+  margin-bottom: 6px;
+}
+
+.ai-editor-tweak-block-head {
+  margin-bottom: 3px;
+}
+
+.ai-editor-tweak-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.ai-editor-tweak-label {
+  font-size: 11px;
+  color: #444;
+  flex-shrink: 0;
+  min-width: 62px;
+}
+
+.ai-editor-tweak-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.ai-editor-quad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.ai-editor-quad-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  padding: 2px 4px;
+  background: #fafafa;
+}
+
+.ai-editor-quad-side {
+  font-size: 9px;
+  font-weight: 700;
+  color: #9ca3af;
+  user-select: none;
+}
+
+.ai-editor-tweak-num {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  outline: none;
+  padding: 1px 0;
+}
+
+.ai-editor-tweak-num-sm {
+  width: 48px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  background: #fafafa;
+  padding: 2px 4px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ai-editor-tweak-range {
+  flex: 1;
+  min-width: 60px;
+  accent-color: #111;
+  cursor: pointer;
+}
+
+.ai-editor-tweak-text,
+.ai-editor-tweak-select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  background: #fafafa;
+  color: #111;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 3px 6px;
+  outline: none;
+}
+
+.ai-editor-tweak-text:focus,
+.ai-editor-tweak-select:focus,
+.ai-editor-tweak-num-sm:focus {
+  border-color: #111;
+  background: #fff;
+}
+
+.ai-editor-tweak-color {
+  width: 24px;
+  height: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  padding: 1px;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+

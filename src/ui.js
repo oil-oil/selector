@@ -1,21 +1,128 @@
-  // ── Annotation popover ──────────────────────────────────────
+  // ── Unified Draggable Annotation + Tweak popover ───────────
+  function placePopoverSmart(popover, el, btn) {
+    const er = (el && el.getBoundingClientRect) ? el.getBoundingClientRect() : btn.getBoundingClientRect();
+    const pw = popover.offsetWidth || 288;
+    const ph = popover.offsetHeight || 380;
+    const margin = 10;
+    let left;
+    let top;
+
+    if (er.right + 12 + pw <= window.innerWidth - margin) {
+      left = er.right + 12;
+      top = Math.max(margin, Math.min(er.top, window.innerHeight - ph - margin));
+    } else if (er.left - 12 - pw >= margin) {
+      left = er.left - 12 - pw;
+      top = Math.max(margin, Math.min(er.top, window.innerHeight - ph - margin));
+    } else {
+      left = Math.max(margin, Math.min(er.left, window.innerWidth - pw - margin));
+      const below = er.bottom + 10;
+      const above = er.top - ph - 10;
+      if (below + ph <= window.innerHeight - margin) top = below;
+      else if (above >= margin) top = above;
+      else top = Math.max(margin, window.innerHeight - ph - margin);
+    }
+    popover.style.top = top + "px";
+    popover.style.left = left + "px";
+    popover.style.right = "auto";
+    popover.style.bottom = "auto";
+  }
+
   function showAnnotationPopover(el, btn) {
-    removeAnnotationPopover(); const aiId = el.getAttribute(AI_ID);
-    const popover = document.createElement("div"); popover.className = `${NS}-root ${NS}-annotate-popover`;
+    removeAnnotationPopover();
+    const aiId = el.getAttribute(AI_ID);
+    const popover = document.createElement("div");
+    popover.className = `${NS}-root ${NS}-annotate-popover ${NS}-popover-wide`;
+
+    const header = document.createElement("div");
+    header.className = `${NS}-popover-header`;
+    const titleWrap = document.createElement("div");
+    titleWrap.className = `${NS}-popover-title-wrap`;
+    const grip = document.createElement("span");
+    grip.className = `${NS}-popover-grip`;
+    grip.setAttribute("aria-hidden", "true");
+    grip.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="3" cy="2" r="1"/><circle cx="7" cy="2" r="1"/><circle cx="3" cy="5" r="1"/><circle cx="7" cy="5" r="1"/><circle cx="3" cy="8" r="1"/><circle cx="7" cy="8" r="1"/></svg>';
+    const title = document.createElement("span");
+    title.className = `${NS}-tweak-elname`;
+    title.textContent = elementLabel(el);
+    titleWrap.appendChild(grip);
+    titleWrap.appendChild(title);
+
+    const headerActions = document.createElement("div");
+    headerActions.className = `${NS}-popover-header-actions`;
+    const resetAllBtn = document.createElement("button");
+    resetAllBtn.type = "button";
+    resetAllBtn.className = `${NS}-tweak-reset-all`;
+    resetAllBtn.textContent = t("tweakResetAll");
+    resetAllBtn.disabled = !hasTweaks(aiId);
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = `${NS}-panel-btn`;
+    closeBtn.title = t("close");
+    closeBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    headerActions.appendChild(resetAllBtn);
+    headerActions.appendChild(closeBtn);
+    header.appendChild(titleWrap);
+    header.appendChild(headerActions);
+    popover.appendChild(header);
+
+    const notePane = document.createElement("div");
+    notePane.className = `${NS}-popover-note`;
     const textarea = document.createElement("textarea"); textarea.className = `${NS}-annotate-input`;
     textarea.value = annotations.get(aiId)||""; textarea.placeholder = t("instrPlaceholder"); textarea.rows = 2;
     const actions = document.createElement("div"); actions.className = `${NS}-annotate-actions`;
-    const clearBtn = document.createElement("button"); clearBtn.className = `${NS}-annotate-clear`; clearBtn.textContent = t("clear");
-    const doneBtn = document.createElement("button"); doneBtn.className = `${NS}-annotate-done`; doneBtn.textContent = t("done");
-    const save = () => { const v=textarea.value.trim(); if(v) annotations.set(aiId,v); else annotations.delete(aiId); removeAnnotationPopover(); positionSelOverlay(el); };
-    doneBtn.onclick = (e) => { e.stopPropagation(); save(); };
-    clearBtn.onclick = (e) => { e.stopPropagation(); annotations.delete(aiId); removeAnnotationPopover(); positionSelOverlay(el); };
-    textarea.addEventListener("keydown", (e) => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();save();} e.stopPropagation(); });
+    const clearBtn = document.createElement("button"); clearBtn.type = "button"; clearBtn.className = `${NS}-annotate-clear`; clearBtn.textContent = t("clear");
+    const doneBtn = document.createElement("button"); doneBtn.type = "button"; doneBtn.className = `${NS}-annotate-done`; doneBtn.textContent = t("done");
+    const syncNote = () => {
+      const v = textarea.value.trim();
+      if (v) annotations.set(aiId, v); else annotations.delete(aiId);
+      positionSelOverlay(el);
+      updateTags();
+    };
+    const saveAndClose = () => {
+      syncNote();
+      removeAnnotationPopover();
+    };
+    textarea.addEventListener("input", syncNote);
+    doneBtn.onclick = (e) => { e.stopPropagation(); saveAndClose(); };
+    closeBtn.onclick = (e) => { e.stopPropagation(); saveAndClose(); };
+    clearBtn.onclick = (e) => {
+      e.stopPropagation();
+      textarea.value = "";
+      annotations.delete(aiId);
+      positionSelOverlay(el);
+      updateTags();
+      textarea.focus();
+    };
+    textarea.addEventListener("keydown", (e) => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveAndClose();} e.stopPropagation(); });
     textarea.addEventListener("click", (e) => e.stopPropagation());
-    actions.appendChild(clearBtn); actions.appendChild(doneBtn); popover.appendChild(textarea); popover.appendChild(actions);
-    const r = btn.getBoundingClientRect();
-    popover.style.top = (r.bottom+6)+"px"; popover.style.right = Math.max(8, window.innerWidth-r.right)+"px";
-    mountSelectorSurface(popover); activePopover = popover; textarea.focus();
+    actions.appendChild(clearBtn); actions.appendChild(doneBtn); notePane.appendChild(textarea); notePane.appendChild(actions);
+    popover.appendChild(notePane);
+
+    const tweakPane = document.createElement("div");
+    tweakPane.className = `${NS}-tweak-panel`;
+    popover.appendChild(tweakPane);
+
+    const mountTweaks = () => {
+      if (typeof renderTweakPanel === "function") {
+        renderTweakPanel(tweakPane, el, {
+          hideTopBar: true,
+          onTweakChange: (hasAny) => { resetAllBtn.disabled = !hasAny; },
+        });
+      }
+      resetAllBtn.disabled = !hasTweaks(aiId);
+    };
+    resetAllBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof resetElementTweaks === "function") resetElementTweaks(el);
+      mountTweaks();
+    };
+
+    popover.addEventListener("click", (e) => e.stopPropagation());
+    makeDraggable(popover, header);
+    mountSelectorSurface(popover); activePopover = popover;
+    mountTweaks();
+    placePopoverSmart(popover, el, btn);
+    textarea.focus();
   }
   function removeAnnotationPopover() { if (activePopover) { activePopover.remove(); activePopover = null; } }
 
@@ -478,7 +585,7 @@
   function makeDraggable(panel, handle) {
     let sx,sy,sl,st;
     handle.addEventListener("mousedown", (e) => {
-      if (e.target.closest(`.${NS}-panel-btn`)) return; e.preventDefault();
+      if (e.target.closest(`.${NS}-panel-btn, button`)) return; e.preventDefault();
       const r=panel.getBoundingClientRect(); sx=e.clientX; sy=e.clientY; sl=r.left; st=r.top;
       const move=(e)=>{ panel.style.left=sl+e.clientX-sx+"px"; panel.style.top=st+e.clientY-sy+"px"; panel.style.right="auto"; panel.style.bottom="auto"; };
       const up=()=>{ document.removeEventListener("mousemove",move); document.removeEventListener("mouseup",up); };
@@ -506,7 +613,7 @@
       if (screenshotBtn) screenshotBtn.disabled=false;
       for (let i=0;i<selectedElements.length;i++) {
         const el=selectedElements[i], aiId=el.getAttribute(AI_ID), tag=document.createElement("span");
-        tag.className=`${NS}-tag`; const hasNote=annotations.has(aiId);
+        tag.className=`${NS}-tag`; const hasNote=hasElementFeedback(aiId);
         tag.innerHTML=`<span class="${NS}-tag-num">${i+1}</span><span class="${NS}-tag-label">${elementLabel(el)}${hasNote?' \u270e':''}</span><button class="${NS}-tag-x" data-aiid="${aiId}" title="Remove">\u00d7</button>`;
         const thumb=thumbSrcForElement(el);
         if(thumb){ const ti=document.createElement("img"); ti.className=`${NS}-tag-thumb`; ti.src=thumb; ti.alt=""; tag.insertBefore(ti, tag.firstChild); }
